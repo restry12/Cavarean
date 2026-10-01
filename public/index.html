@@ -395,21 +395,22 @@
       <div class="dice">
         <span class="speaker" aria-hidden="true"><i data-icono="speaker" data-s="32"></i></span>
         <div class="bubble" role="status">
-          <h1 tabindex="-1" style="font-size: 1.65em; line-height: 1.15">Cuénteme cómo lo hace, como si se lo explicara a un nieto.</h1>
+          <h1 tabindex="-1" class="e1-titulo">Cuénteme cómo lo hace, como si se lo explicara a un nieto.</h1>
           <p style="margin-top: 10px">No se preocupe si se equivoca o se sale del tema. Yo ordeno todo después.</p>
         </div>
       </div>
       <section class="card grabadora">
-        <div class="grabadora-tiempo" role="timer" aria-live="off">
-          <span class="recdot" id="e1-punto" aria-hidden="true" hidden></span>
-          <span id="e1-tiempo" class="tiempo">00:00</span>
-          <span id="e1-estado" style="font-weight: 700">Listo para grabar</span>
+        <div class="grabadora-cabeza">
+          <button type="button" class="mic idle" id="e1-mic" aria-label="Grabar. Toque el micrófono para empezar o pausar"><span class="ring"></span><span class="ring r2"></span><span class="ring r3"></span><span class="mic-ico"></span></button>
+          <div class="grabadora-tiempo" role="timer" aria-live="off">
+            <span id="e1-tiempo" class="tiempo">00:00</span>
+            <span class="con-icono" style="gap: 8px"><span class="recdot" id="e1-punto" aria-hidden="true" hidden></span><span id="e1-estado" style="font-weight: 700">Listo para grabar</span></span>
+          </div>
+          <div class="wave" id="e1-onda" aria-hidden="true"></div>
         </div>
-        <div class="wave" id="e1-onda" aria-hidden="true"></div>
-        <button type="button" class="mic idle" id="e1-mic" aria-label="Grabar. Toque el micrófono para empezar o pausar"><span class="ring"></span><span class="ring r2"></span><span class="ring r3"></span><span class="mic-ico"></span></button>
         <div class="entendiendo" role="status">
-          <label for="transcripcion" style="font-size: .85em; font-weight: 700">Lo que voy entendiendo · también puede escribir o corregir aquí</label>
-          <textarea id="transcripcion" class="transcripcion" rows="4" placeholder="Hable o escriba aquí lo que quiere enseñar."></textarea>
+          <label for="transcripcion" style="font-size: .85em; font-weight: 700">Lo que voy entendiendo · puede escribir o corregir aquí</label>
+          <textarea id="transcripcion" class="transcripcion" rows="3" placeholder="Hable o escriba aquí lo que quiere enseñar."></textarea>
           <p id="ensenar-aviso-mic" class="aviso-suave" hidden>El micrófono no está disponible. Escriba aquí lo que quiere enseñar y toque «Terminé».</p>
         </div>
       </section>
