@@ -2132,9 +2132,9 @@ function pintarListaJovenes() {
   const lista = $('#lista-jovenes');
   lista.innerHTML = '';
   visibles.forEach(guia => {
-    // Solo visual (demo): la ✕ esconde la tarjeta en este navegador; no borra nada de la base
+    // Solo visual (demo): «Quitar» esconde la tarjeta en este navegador; no borra nada de la base
     const caja = el('<div class="tarjeta-ocultable"></div>');
-    const quitar = el(`<button type="button" class="btn-ocultar" aria-label="Quitar «${esc(guia.titulo)}» de la lista">✕</button>`);
+    const quitar = el(`<button type="button" class="btn-ocultar" aria-label="Quitar «${esc(guia.titulo)}» de la lista">Quitar</button>`);
     quitar.addEventListener('click', () => {
       ocultas.add(guia.id);
       guardarLocal('saberes-ocultas', JSON.stringify([...ocultas]));

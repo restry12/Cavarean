@@ -573,8 +573,8 @@ body[data-barra="joven"] .lectura { font-size: 20px; }
   html { scroll-behavior: auto; }
 }
 
-/* Demo: ✕ para esconder una tarjeta en Explorar (solo en este navegador) */
-.tarjeta-ocultable { position: relative; display: flex; }
+/* Demo: «Quitar» bajo cada tarjeta de Explorar (solo en este navegador) */
+.tarjeta-ocultable { display: flex; flex-direction: column; gap: 4px; }
 .tarjeta-ocultable > .tile { flex: 1; }
-.sb .btn-ocultar { position: absolute; top: -10px; right: -10px; z-index: 2; width: 44px; height: 44px; border-radius: 50%; background: #2B1D14; color: #FFF8EE; font-size: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-align: center; box-shadow: 0 6px 14px -6px rgba(43, 29, 20, .6); }
-.sb .btn-ocultar:hover { background: #A9461F; }
+.sb .btn-ocultar { align-self: center; padding: 2px 10px; font-size: 13px; color: #9A8577; text-decoration: underline; text-underline-offset: 3px; }
+.sb .btn-ocultar:hover { color: #A9461F; }
