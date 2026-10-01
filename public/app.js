@@ -2110,7 +2110,9 @@ function pintarFiltrosJovenes() {
   const claves = ['todas', ...Object.keys(CATEGORIAS)];
   caja.innerHTML = '';
   claves.forEach(k => {
-    const n = k === 'todas' ? guiasJovenes.length : guiasJovenes.filter(x => x.categoria === k).length;
+    const ocultas = new Set(JSON.parse(leerLocal('saberes-ocultas') || '[]'));
+    const vivas = guiasJovenes.filter(x => !ocultas.has(x.id));
+    const n = k === 'todas' ? vivas.length : vivas.filter(x => x.categoria === k).length;
     const li = el(`<li><button type="button" class="catbtn ${filtroCategoria === k ? 'on' : ''}" aria-pressed="${filtroCategoria === k}"><span>${k === 'todas' ? 'Todas' : CATEGORIAS[k].nombre}</span><span style="font-size: 15px">${n}</span></button></li>`);
     li.querySelector('button').addEventListener('click', () => { filtroCategoria = k; pintarFiltrosJovenes(); pintarListaJovenes(); });
     caja.append(li);
@@ -2119,7 +2121,9 @@ function pintarFiltrosJovenes() {
 
 function pintarListaJovenes() {
   const palabras = normal($('#buscador').value).split(' ').filter(Boolean);
+  const ocultas = new Set(JSON.parse(leerLocal('saberes-ocultas') || '[]'));
   const visibles = guiasJovenes.filter(guia => {
+    if (ocultas.has(guia.id)) return false;
     if (filtroCategoria !== 'todas' && guia.categoria !== filtroCategoria) return false;
     const texto = normal([guia.titulo, cat(guia).nombre, guia.autor, guia.comuna, ...(guia.materiales || []), ...(guia.claves || [])].join(' '));
     return palabras.every(p => texto.includes(p));
@@ -2127,7 +2131,19 @@ function pintarListaJovenes() {
   $('#j-cuenta').textContent = `${visibles.length === 1 ? '1 guía' : visibles.length + ' guías'} · las nuevas y las más agradecidas primero`;
   const lista = $('#lista-jovenes');
   lista.innerHTML = '';
-  visibles.forEach(guia => lista.append(tarjetaGuia(guia, () => abrir('guia-joven', { guia }), true)));
+  visibles.forEach(guia => {
+    // Solo visual (demo): la ✕ esconde la tarjeta en este navegador; no borra nada de la base
+    const caja = el('<div class="tarjeta-ocultable"></div>');
+    const quitar = el(`<button type="button" class="btn-ocultar" aria-label="Quitar «${esc(guia.titulo)}» de la lista">✕</button>`);
+    quitar.addEventListener('click', () => {
+      ocultas.add(guia.id);
+      guardarLocal('saberes-ocultas', JSON.stringify([...ocultas]));
+      pintarFiltrosJovenes();
+      pintarListaJovenes();
+    });
+    caja.append(tarjetaGuia(guia, () => abrir('guia-joven', { guia }), true), quitar);
+    lista.append(caja);
+  });
   if (!visibles.length) lista.append(el('<p class="card" style="padding: 28px; grid-column: 1 / -1">No hay guías con esa búsqueda todavía. Pruebe con otra palabra o categoría.</p>'));
 }
 

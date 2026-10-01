@@ -572,3 +572,9 @@ body[data-barra="joven"] .lectura { font-size: 20px; }
   .sb *, .sb *::before, .sb *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
   html { scroll-behavior: auto; }
 }
+
+/* Demo: ✕ para esconder una tarjeta en Explorar (solo en este navegador) */
+.tarjeta-ocultable { position: relative; display: flex; }
+.tarjeta-ocultable > .tile { flex: 1; }
+.sb .btn-ocultar { position: absolute; top: -10px; right: -10px; z-index: 2; width: 44px; height: 44px; border-radius: 50%; background: #2B1D14; color: #FFF8EE; font-size: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-align: center; box-shadow: 0 6px 14px -6px rgba(43, 29, 20, .6); }
+.sb .btn-ocultar:hover { background: #A9461F; }
