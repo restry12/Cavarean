@@ -270,10 +270,21 @@ function callar() {
   if ('speechSynthesis' in window) speechSynthesis.cancel();
 }
 
-// Lee en voz alta y SIEMPRE muestra el subtítulo
-function hablar(texto) {
+// Nada se activa solo: por defecto SABERES no habla ni escucha hasta que la persona
+// toca «Escuchar» o el micrófono. Con ?voz=auto vuelve el modo automático (demo).
+const VOZ_AUTO = new URLSearchParams(location.search).get('voz') === 'auto';
+
+// Lee en voz alta y SIEMPRE muestra el subtítulo.
+// Sin VOZ_AUTO solo muestra el texto (con «Escuchar» en la barra); forzar = lo pidió la persona.
+function hablar(texto, { forzar = false } = {}) {
   texto = String(texto ?? '').replace(/\s+/g, ' ').trim();
   if (!texto) return Promise.resolve();
+  if (!VOZ_AUTO && !forzar) {
+    ultimoTexto = texto;
+    lecturaCerrada = false;
+    setEstado(null);
+    return Promise.resolve();
+  }
   setEstado('hablando', texto);
   if (!('speechSynthesis' in window) && !usarVozIA()) return pausa(400 + texto.length * 40).then(() => setEstado(null));
   callar();
@@ -302,8 +313,27 @@ function detenerEscucha() {
   setEstado(null);
 }
 
+// El micrófono solo escucha después de que la persona lo toca (o la barra espaciadora).
+// Si nadie lo ha tocado, la escucha espera ese toque en vez de prenderse sola.
+let ultimoToqueMic = 0;
+let esperandoToqueMic = null;
+document.addEventListener('click', (e) => {
+  if (!e.target.closest || !e.target.closest('.mic, [data-hablar]')) return;
+  ultimoToqueMic = Date.now();
+  if (esperandoToqueMic) { const seguir = esperandoToqueMic; esperandoToqueMic = null; seguir(); }
+}, true);
+function esperarToqueMic() {
+  if (VOZ_AUTO || Date.now() - ultimoToqueMic < 1500) { ultimoToqueMic = 0; return Promise.resolve(); }
+  return new Promise((res) => { esperandoToqueMic = () => { ultimoToqueMic = 0; res(); }; });
+}
+
 // Reconoce una frase (o un relato largo con continuo = true)
-function escuchar({ onParcial = null, continuo = false } = {}) {
+function escuchar(opciones = {}) {
+  if (!micOk) return Promise.reject(new Error('sin-microfono'));
+  return esperarToqueMic().then(() => escucharAhora(opciones));
+}
+
+function escucharAhora({ onParcial = null, continuo = false } = {}) {
   if (!micOk) return Promise.reject(new Error('sin-microfono'));
   callar();
   detenerEscucha();
@@ -484,7 +514,7 @@ function pedirRespuesta({ etiqueta = 'O escriba su respuesta', boton = 'Enviar',
       if (v) fin(v, true); else campo.focus();
     };
     // Medio segundo antes de escuchar: así no se cuela un «sí» de la pregunta anterior
-    if (micOk) pausa(500).then(oir);
+    if (micOk && VOZ_AUTO) pausa(500).then(oir);
   });
 }
 
@@ -1270,7 +1300,7 @@ function escucharBarraInicio() {
     campo.value = '';
     micEstado(mic, 'idle');
     linea.textContent = micOk ? 'O dígame qué quiere hacer' : 'El micrófono no está disponible. Escriba aquí abajo.';
-    if (micOk) oir();
+    if (micOk && VOZ_AUTO) oir();
   });
 }
 
@@ -1838,7 +1868,7 @@ async function flujoMisGuias(g) {
       <p class="gracia-msg">«${esc(x.mensaje)}»</p>
       <p style="font-size: .85em; font-weight: 700; color: #8E3717">${esc(x.cuando)}</p>
     </article>`).join('') : '<p class="card gracia" style="grid-column: 1 / -1">Cuando alguien aprenda de usted, sus gracias aparecerán aquí.</p>';
-  $('#mg-escuchar').onclick = () => hablar(gracias.length ? textoGracias(gracias) : 'Todavía no hay gracias. Cuando alguien aprenda de usted, le avisaremos.').catch(() => {});
+  $('#mg-escuchar').onclick = () => hablar(gracias.length ? textoGracias(gracias) : 'Todavía no hay gracias. Cuando alguien aprenda de usted, le avisaremos.', { forzar: true }).catch(() => {});
   pintarCelular(gracias);
 
   await hablar(`${total} ${frase}. ¡Gracias por compartir lo que sabe!` + (gracias[0] ? ` ${gracias[0].nombre} aprendió su ${gracias[0].guia} gracias a usted.` : ''));
@@ -1973,7 +2003,7 @@ async function flujoGuiaJoven(g, { guia }) {
     play.setAttribute('aria-label', 'Detener');
     barra.style.transition = `width ${Math.round(texto.length / 13 / velocidadVoz)}s linear`;
     barra.style.width = '100%';
-    await hablar(texto).catch(() => {});
+    await hablar(texto, { forzar: true }).catch(() => {});
     delete play.dataset.sonando;
     play.innerHTML = icono('play', 24);
     play.setAttribute('aria-label', 'Escuchar la guía');
@@ -1992,7 +2022,7 @@ function pintarPreguntas(guia) {
       <p style="font-size: 16px">¿Tiene una duda sobre esta guía? Escríbala o dígala con el micrófono.</p>
       <textarea id="j2-pregunta" rows="3" aria-label="Escriba su pregunta" placeholder="Por ejemplo: ¿cómo me conecto al wifi?"></textarea>
       <div class="preguntas-botones">
-        <button type="button" class="btn btn-w btn-md" id="j2-hablar">${icono('mic', 24)}<span>Hablar</span></button>
+        <button type="button" class="btn btn-w btn-md" id="j2-hablar" data-hablar>${icono('mic', 24)}<span>Hablar</span></button>
         <button type="submit" class="btn btn-p btn-md">${icono('send', 24)}<span>Preguntar</span></button>
       </div>
       <div id="j2-respuesta" class="preguntas-respuesta" aria-live="polite" hidden></div>
@@ -2017,7 +2047,7 @@ function pintarPreguntas(guia) {
       caja.append(ir);
     }
     campo.value = '';
-    hablar(respuesta).catch(() => {});
+    hablar(respuesta, { forzar: true }).catch(() => {});
   }
 
   form.addEventListener('submit', (e) => { e.preventDefault(); preguntar(); });
@@ -2119,7 +2149,7 @@ function pintarExperiencia() {
         <p style="font-size: 17px; background: #FFF8EE; border-radius: 12px; padding: 12px 14px"><strong>Su consejo:</strong> ${esc(l.consejo)}</p>
         <button type="button" class="btn btn-s btn-sm" style="align-self: flex-start; margin-top: auto">${icono('play', 18)}<span>Escuchar · ${esc(l.minutos || '3 min')}</span></button>
       </article>`);
-    card.querySelector('button').addEventListener('click', () => hablar(`${l.titulo}. ${l.autor} cuenta: ${l.resumen} Su consejo: ${l.consejo}`).catch(() => {}));
+    card.querySelector('button').addEventListener('click', () => hablar(`${l.titulo}. ${l.autor} cuenta: ${l.resumen} Su consejo: ${l.consejo}`, { forzar: true }).catch(() => {}));
     lista.append(card);
   });
   if (!lecciones.length) lista.append(el('<p class="card" style="padding: 28px; grid-column: 1 / -1">Todavía no hay historias con esa experiencia.</p>'));
@@ -2164,7 +2194,7 @@ function alternarLectura() {
   if (btn.classList.contains('on')) { callar(); setEstado(null); return; }
   const texto = textoDePantalla();
   if (!texto) return;
-  hablar(texto).catch(() => {});
+  hablar(texto, { forzar: true }).catch(() => {});
   btn.classList.add('on');
   btn.setAttribute('aria-pressed', 'true');
 }
@@ -2203,7 +2233,7 @@ function hacerParlantesTocables() {
     b.addEventListener('click', () => {
       const burbuja = b.parentElement.querySelector('.bubble');
       const texto = [...burbuja.querySelectorAll('h1, p:not(.bubble-titulo)')].map(e => e.textContent.trim()).filter(Boolean).join(' ');
-      if (texto) hablar(texto).catch(() => {});
+      if (texto) hablar(texto, { forzar: true }).catch(() => {});
     });
     sp.replaceWith(b);
   });
@@ -2291,12 +2321,12 @@ function init() {
   $('#btn-escuchar-pagina').addEventListener('click', alternarLectura);
   $('#btn-detener').addEventListener('click', () => { callar(); setEstado(null); });
   $('#btn-cerrar-lectura').addEventListener('click', () => { lecturaCerrada = true; callar(); setEstado(null); });
-  $('#btn-otra-vez').addEventListener('click', () => { if (ultimoTexto) hablar(ultimoTexto).catch(() => {}); });
+  $('#btn-otra-vez').addEventListener('click', () => { if (ultimoTexto) hablar(ultimoTexto, { forzar: true }).catch(() => {}); });
   $('#btn-escuchar-joven').addEventListener('click', () => {
     const b = $('#btn-escuchar-joven');
     if (b.classList.contains('on')) { callar(); setEstado(null); return; }
     const t = textoDePantalla();
-    if (t) { hablar(t).catch(() => {}); b.classList.add('on'); }
+    if (t) { hablar(t, { forzar: true }).catch(() => {}); b.classList.add('on'); }
   });
   hacerParlantesTocables();
   document.querySelectorAll('[data-fs]').forEach(b => b.addEventListener('click', () => ponerTamano(Number(b.dataset.fs))));
