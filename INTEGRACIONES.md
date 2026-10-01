@@ -1,16 +1,31 @@
-# P3 – Integraciones: avisos al autor
+# P3 – Integraciones: el "gracias" por WhatsApp
 
-Cuando alguien aprende con una guía, al autor le llega un mensaje de agradecimiento.
-Para no saturarlo, **solo se avisa en hitos**: la primera persona, 10, 50, 100 y luego cada 100 (200, 300…).
+> Estado: **listo en la branch `p3-integraciones`**, pendiente de unir a `main`.
+> Esa branch ya incluye `main` y `andy-backend` (P2) y se une con ambas **sin conflictos**.
 
-## Dónde está
+## Qué hace
 
-| Archivo | Qué es |
+Cuando alguien aprende con una guía, al autor le llega un **WhatsApp a través de Zavu**.
+
+Para no saturar a la persona mayor, **solo se avisa en hitos**:
+**la primera persona, 10, 50, 100 y luego cada 100** (200, 300…).
+
+Ejemplos:
+
+- 1.ª persona: *"¡Hola, Rosa! 💌 Tomás es la primera persona que aprendió «Sopaipillas pasadas» gracias a usted. Le dice: "¡Me quedaron ricas!" ¡Gracias por enseñar en SABERES! 💛"*
+- Hito: *"¡Hola, Rosa! 🎉 Ya son 50 personas que aprendieron «Sopaipillas pasadas» gracias a usted. La última fue Tomás. ¡Gracias por enseñar en SABERES! 💛"*
+
+La nota del aprendiz ("Le dice…") se mantiene, con el mismo filtro de P2 (sin links ni teléfonos). Si no es hito, no se envía nada.
+
+## Dónde está el código (branch `p3-integraciones`)
+
+| Archivo | Cambio |
 |---|---|
-| `supabase/functions/api/avisos.js` | Módulo de avisos (P3). Funciona en Deno (Edge Function) y en Node. |
-| `supabase/functions/api/index.ts` | Backend (P2). La ruta `POST /aprendi` llama a `avisarGracias`. |
+| `supabase/functions/api/avisos.js` | **Nuevo.** Módulo de avisos: hitos, WhatsApp por Zavu, respaldo. Mismo estilo que `ia.js`; funciona en Deno y Node. |
+| `supabase/functions/api/index.ts` | Cambio mínimo: `import { avisarGracias } from "./avisos.js"`, `aprendi()` lo llama y se quita `avisarAutor`. |
+| `.env.example` | Se quitan `AVISO` y `ZAVU_CANAL` (ya no se usan). |
 
-Ya está conectado en `aprendi()`, después de `sumar_aprendieron`:
+Llamada dentro de `aprendi()`, después de `sumar_aprendieron`:
 
 ```ts
 avisarGracias({
@@ -19,38 +34,43 @@ avisarGracias({
 });
 ```
 
-- Se responde al tiro; el envío sigue en segundo plano (`EdgeRuntime.waitUntil`).
-- Nunca lanza errores; si todo falla, el mensaje queda en los logs de la función.
-- La `nota` del aprendiz ya viene filtrada por `index.ts` (sin links ni teléfonos). Si no es hito, la nota no se envía.
+- Responde al tiro; el envío sigue en segundo plano (`EdgeRuntime.waitUntil`).
+- Nunca lanza errores: si Zavu falla prueba **Telegram** (si está configurado) y, si no, queda en los logs.
 
-Devuelve `{ ok, enviado, canal?, texto?, id?, motivo?, errores[] }`.
+## Envío
 
-## Canal: WhatsApp por Zavu
+`POST https://api.zavu.dev/v1/messages`
+`Authorization: Bearer ZAVUDEV_API_KEY`
+`{ "to": "<telefono del autor o NUMERO_DEMO>", "text": "...", "channel": "whatsapp" }`
 
-1. **WhatsApp a través de Zavu**: `POST https://api.zavu.dev/v1/messages` con `channel: "whatsapp"` y `Authorization: Bearer ZAVUDEV_API_KEY`, al `telefono` del autor o a `NUMERO_DEMO`.
-2. Si Zavu falla, **Telegram** de respaldo (`TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID`), si está configurado.
-3. Si nada funciona, queda en consola.
+## ✅ Checklist por persona
 
-Las variables van como secretos de la Edge Function (Supabase → Edge Functions → Secrets). Ver `.env.example`.
+**P2 (backend)**
+- [ ] Revisar y unir `p3-integraciones` (o pedirme que la una a `andy-backend`).
+- [ ] Cargar secretos en Supabase → Edge Functions → Secrets: `ZAVUDEV_API_KEY`, `NUMERO_DEMO` (opcional: `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID`).
+- [ ] Volver a desplegar la función `api`.
+- [ ] `AVISO` y `ZAVU_CANAL`, si ya estaban cargados, ahora se ignoran.
 
-## Mensajes
+**Todo el equipo (antes de la demo)**
+- [ ] Con llave **`zv_test_`** (sandbox): el celular de `NUMERO_DEMO` debe estar inscrito como miembro del equipo en Zavu.
+- [ ] Con llave **`zv_live_`**: desde el celular de destino, mandar un "hola" al número de Zavu (WhatsApp solo deja texto libre si la persona escribió en las últimas 24 h).
+- [ ] Probar con una guía nueva: parte en 0, así que el primer "¡Aprendí!" dispara el WhatsApp de "primera persona".
 
-- Primera persona: *"¡Hola, Rosa! 💌 Tomás es la primera persona que aprendió «Sopaipillas pasadas» gracias a usted. Le dice: "¡Me quedaron ricas!" ¡Gracias por enseñar en SABERES! 💛"*
-- Hitos: *"¡Hola, Rosa! 🎉 Ya son 50 personas que aprendieron «Sopaipillas pasadas» gracias a usted. La última fue Tomás. ¡Gracias por enseñar en SABERES! 💛"*
+**P4 (pitch)**
+- Los avisos por hitos son parte del discurso: *"no la saturamos; le avisamos cuando su saber llega a la primera persona, a 10, a 50, a 100…"*.
 
-Los hitos se cambian en `HITOS` y `CADA_DESPUES` al inicio de `avisos.js`.
+## Ajustes rápidos
+
+- Cambiar hitos: `HITOS` y `CADA_DESPUES` al inicio de `avisos.js`.
+- Cambiar textos: función `textoGracias` en `avisos.js`.
 
 ## Probar en local (Node)
 
 ```js
-// probar.mjs
+// probar.mjs  →  node probar.mjs
 import "dotenv/config";
 import { avisarGracias } from "./supabase/functions/api/avisos.js";
 console.log(await avisarGracias({ autor: "Rosa Pérez", titulo: "Sopaipillas", aprendiz: "Tomás", aprendieron: 1 }));
 ```
 
-## Ojo para la demo
-
-- **Llave `zv_test_`** (sandbox): solo WhatsApp y solo a celulares de miembros del equipo en Zavu. El número de destino debe estar inscrito.
-- **Llave `zv_live_`**: WhatsApp solo permite texto libre si ese número escribió en las últimas 24 h. Antes de la demo, mandar un "hola" desde el celular de destino al número de Zavu.
-- Una guía nueva parte en 0, así que el primer aprendiz dispara el aviso de "primera persona".
+Dudas: P3 – Integraciones.

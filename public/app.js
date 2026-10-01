@@ -99,6 +99,7 @@ function coincide(n, p) {
 function avatar(persona, s = 64) {
   const who = persona && persona.who;
   if (who && PERSONAS[who]) return retrato(who, s);
+  if (/^equipo saberes/i.test((persona && (persona.nombre || persona.autor)) || '')) return `<span class="iniciales" aria-hidden="true" style="width:${s}px;height:${s}px">${logo(Math.round(s * 0.62))}</span>`;
   const p = String((persona && (persona.nombre || persona.autor)) || '?').replace(/^(señora|señor|don|doña|equipo)\s+/i, '').split(' ');
   const ini = ((p[0] || '?')[0] + ((p[1] || '')[0] || '')).toUpperCase();
   return `<span class="iniciales" aria-hidden="true" style="width:${s}px;height:${s}px;font-size:${Math.round(s * 0.38)}px">${esc(ini)}</span>`;
@@ -109,32 +110,38 @@ function avatar(persona, s = 64) {
    ========================================================= */
 const ESTADOS = {
   hablando: 'SABERES está leyendo en voz alta',
-  escuchando: 'SABERES le escucha',
-  pensando: 'SABERES está pensando'
+  escuchando: 'SABERES le escucha · hable con calma, sin apuro',
+  pensando: 'Un momento, SABERES está pensando…',
+  reposo: 'SABERES le dijo'
 };
+let ultimoTexto = '';   // lo último que dijo SABERES: siempre se puede leer y volver a escuchar
 
+// La barra de abajo siempre muestra lo último que dijo SABERES y en qué está
 function setEstado(tipo, texto) {
   const barra = $('#subtitulos');
   const sp = $('#estado');
+  if (tipo === 'hablando' && texto) ultimoTexto = texto;
+  const estado = tipo || 'reposo';
   if (!tipo) {
-    barra.hidden = true;
-    document.documentElement.style.setProperty('--alto-lectura', '0px');
     $('#btn-escuchar-pagina').classList.remove('on');
     $('#btn-escuchar-pagina').setAttribute('aria-pressed', 'false');
-    return;
+    $('#btn-escuchar-joven').classList.remove('on');
   }
-  barra.hidden = false;
-  sp.className = 'speaker ' + (tipo === 'hablando' ? '' : tipo);
-  sp.innerHTML = tipo === 'hablando' ? '<span class="eq"><i></i><i></i><i></i></span>'
-    : tipo === 'escuchando' ? icono('mic', 30) : iconoMicrofono('processing', 30);
-  $('#lectura-titulo').textContent = ESTADOS[tipo];
-  if (texto !== undefined) $('#subtitulo').textContent = texto;
-  $('#btn-detener').hidden = tipo !== 'hablando';
+  barra.hidden = !ultimoTexto && estado === 'reposo';
+  barra.dataset.estado = estado;
+  sp.className = 'speaker ' + (estado === 'hablando' || estado === 'reposo' ? '' : estado);
+  sp.innerHTML = estado === 'hablando' ? '<span class="eq"><i></i><i></i><i></i></span>'
+    : estado === 'escuchando' ? icono('mic', 30) : estado === 'pensando' ? iconoMicrofono('processing', 30) : icono('speaker', 30);
+  $('#lectura-titulo').textContent = ESTADOS[estado];
+  $('#subtitulo').textContent = ultimoTexto;
+  $('#btn-detener').hidden = estado !== 'hablando';
+  $('#btn-otra-vez').hidden = estado === 'hablando' || !ultimoTexto;
   // Las barras fijas de abajo suben para no quedar tapadas
-  document.documentElement.style.setProperty('--alto-lectura', barra.offsetHeight + 'px');
+  document.documentElement.style.setProperty('--alto-lectura', (barra.hidden ? 0 : barra.offsetHeight) + 'px');
 }
 
 function mostrarSubtitulo(texto) {
+  ultimoTexto = texto;
   $('#subtitulo').textContent = texto;
 }
 
@@ -280,13 +287,14 @@ function construirZona(contenedor, i) {
       <p class="mic-ayuda">o presione la barra espaciadora</p>
     </div>
     <div class="card oido fade" data-oido role="status" hidden><p class="oido-titulo" data-oido-titulo></p><p class="oido-texto">«<span data-oido-texto></span>»<span class="caret" data-caret hidden></span></p></div>
-    <form class="escribir fade" data-escribir hidden>
-      <label for="${id}" style="font-weight: 700" data-escribir-etiqueta>Escriba su respuesta</label>
-      ${multilinea ? `<textarea id="${id}" class="field" rows="5" data-campo></textarea>` : `<input id="${id}" class="field" type="text" autocomplete="off" data-campo>`}
-      <div class="row"><button type="submit" class="btn btn-p">${icono('check', 28)}<span data-enviar>Sí, está bien</span></button></div>
+    <form class="escribir" data-escribir>
+      <label for="${id}" style="font-weight: 700" data-escribir-etiqueta>O escriba su respuesta</label>
+      <div class="escribir-fila${multilinea ? ' escribir-fila-larga' : ''}">
+        ${multilinea ? `<textarea id="${id}" class="field" rows="4" data-campo></textarea>` : `<input id="${id}" class="field" type="text" autocomplete="off" data-campo>`}
+        <button type="submit" class="btn btn-p btn-md">${icono('send', 26)}<span data-enviar>Enviar</span></button>
+      </div>
     </form>
-    <div class="controles controles-centro" data-controles></div>
-    <button type="button" class="btn btn-ghost" data-alternar>${icono('keyboard', 26)}<span>Prefiero escribir</span></button>`;
+    <div class="controles controles-centro" data-controles></div>`;
 }
 
 function zonaActiva() {
@@ -314,8 +322,8 @@ function ocultarOido(z) {
   z.querySelector('[data-oido]').hidden = true;
 }
 
-// Pide una respuesta por voz o escrita. Resuelve { texto, escrito }
-function pedirRespuesta({ etiqueta = 'Escriba su respuesta', boton = 'Sí, está bien', continuo = false } = {}) {
+// Pide una respuesta por voz o escrita (las dos opciones a la vista). Resuelve { texto, escrito }
+function pedirRespuesta({ etiqueta = 'O escriba su respuesta', boton = 'Enviar', continuo = false } = {}) {
   const z = zonaActiva();
   const g = generacion;
   return cancelable((resolver) => {
@@ -323,31 +331,32 @@ function pedirRespuesta({ etiqueta = 'Escriba su respuesta', boton = 'Sí, está
     const mic = z.querySelector('[data-mic]');
     const form = z.querySelector('[data-escribir]');
     const campo = form.querySelector('[data-campo]');
-    const alt = z.querySelector('[data-alternar]');
     z.querySelector('[data-escribir-etiqueta]').textContent = etiqueta;
     z.querySelector('[data-enviar]').textContent = boton;
     z.querySelector('[data-controles]').innerHTML = '';
     campo.value = '';
     ocultarOido(z);
-    micEstado(mic, 'idle', 'Toque el micrófono para hablar');
+    micEstado(mic, 'idle', micOk ? 'Toque el micrófono para hablar' : 'El micrófono no está disponible. Puede escribir aquí abajo.');
+    z.querySelector('[data-mic-caja]').classList.toggle('sin-mic', !micOk);
 
     const fin = (texto, escrito) => {
       if (hecho) return;
       hecho = true;
       intento++;
       detenerEscucha();
-      mic.onclick = alt.onclick = form.onsubmit = null;
+      mic.onclick = form.onsubmit = campo.onfocus = campo.oninput = null;
       resolver({ texto, escrito });
     };
-    const escribir = (on) => {
-      z.dataset.escribiendo = on ? '1' : '';
-      form.hidden = !on;
-      z.querySelector('[data-mic-caja]').hidden = on;
-      alt.innerHTML = on ? `${icono('mic', 26)}<span>Prefiero hablar</span>` : `${icono('keyboard', 26)}<span>Prefiero escribir</span>`;
-      if (on) { intento++; detenerEscucha(); micEstado(mic, 'idle'); ocultarOido(z); campo.focus(); }
+    // Si la persona empieza a escribir, el micrófono se pausa
+    const pausarVoz = () => {
+      if (!mic.classList.contains('listening')) return;
+      intento++;
+      detenerEscucha();
+      ocultarOido(z);
+      micEstado(mic, 'idle', 'Escriba con calma y toque «Enviar». O toque el micrófono para hablar.');
     };
     const oir = async () => {
-      if (hecho || g !== generacion) return;
+      if (hecho || g !== generacion || !micOk) return;
       const yo = ++intento;
       micEstado(mic, 'listening', continuo ? 'La escucho… Toque el micrófono cuando termine.' : 'La escucho…');
       mostrarOido(z, 'Escuchando…', '', true);
@@ -363,9 +372,9 @@ function pedirRespuesta({ etiqueta = 'Escriba su respuesta', boton = 'Sí, está
       } catch (e) {
         if (hecho || yo !== intento || g !== generacion) return;
         ocultarOido(z);
-        if (!micOk) { micEstado(mic, 'idle', 'El micrófono no está disponible. Puede escribir.'); escribir(true); return; }
+        if (!micOk) { micEstado(mic, 'idle', 'El micrófono no está disponible. Puede escribir aquí abajo.'); z.querySelector('[data-mic-caja]').classList.add('sin-mic'); campo.focus(); return; }
         if (reintentos++ < 1) return oir();
-        micEstado(mic, 'idle', 'No le escuché bien. Toque el micrófono para intentar de nuevo.');
+        micEstado(mic, 'idle', 'No le escuché bien. Toque el micrófono o escriba aquí abajo.');
       }
     };
 
@@ -378,13 +387,14 @@ function pedirRespuesta({ etiqueta = 'Escriba su respuesta', boton = 'Sí, está
       reintentos = 0;
       oir();
     };
-    alt.onclick = () => { if (z.dataset.escribiendo) { escribir(false); reintentos = 0; oir(); } else escribir(true); };
+    campo.onfocus = pausarVoz;
+    campo.oninput = pausarVoz;
     form.onsubmit = (e) => {
       e.preventDefault();
       const v = campo.value.trim();
       if (v) fin(v, true); else campo.focus();
     };
-    if (z.dataset.escribiendo || !micOk) escribir(true); else oir();
+    if (micOk) oir();
   });
 }
 
@@ -420,7 +430,7 @@ function boton(texto, clase, accion, nombreIcono, despues = false) {
 // Deja los botones a la vista y muestra que la app también escucha
 function mostrarControles(caja) {
   const z = caja.closest('.zona-voz');
-  if (z && !z.dataset.escribiendo) {
+  if (z) {
     const mic = z.querySelector('[data-mic]');
     if (mic.classList.contains('idle')) micEstado(mic, micOk ? 'listening' : 'idle', micOk ? 'La escucho. También puede tocar un botón.' : 'Toque un botón para responder.');
   }
@@ -436,32 +446,69 @@ function ponerControles(...nodos) {
   return c;
 }
 
-// Muestra opciones y espera un toque o una palabra dicha. Resuelve el valor elegido
+// Campo chico para responder escribiendo junto a los botones
+let numCampo = 0;
+function formularioRespuesta(etiqueta, textoBoton, alEnviar, alEscribir) {
+  const id = 'resp-' + (++numCampo);
+  const f = el(`<form class="escribir escribir-chico"><label for="${id}" style="font-weight: 700">${esc(etiqueta)}</label><div class="escribir-fila"><input id="${id}" class="field" type="text" autocomplete="off"><button type="submit" class="btn btn-s btn-md">${icono('send', 24)}<span>${esc(textoBoton)}</span></button></div></form>`);
+  const campo = f.querySelector('input');
+  campo.addEventListener('focus', alEscribir);
+  campo.addEventListener('input', alEscribir);
+  f.addEventListener('submit', (e) => { e.preventDefault(); const v = campo.value.trim(); if (v) alEnviar(v, campo); else campo.focus(); });
+  return f;
+}
+
+// Muestra opciones y espera un toque, una palabra dicha o escrita. Resuelve el valor elegido
 function elegir(opciones, { clasificar = null } = {}) {
   const g = generacion;
   return cancelable((resolver) => {
-    let hecho = false;
+    let hecho = false, escribiendo = false;
     const caja = controlesActivos();
     const fin = (v) => {
       if (hecho) return;
       hecho = true;
       detenerEscucha();
       if (caja) caja.innerHTML = '';
+      if (zona) { const f = zona.querySelector('[data-escribir]'); f.onsubmit = null; f.querySelector('[data-campo]').onfocus = f.querySelector('[data-campo]').oninput = null; }
       resolver(v);
     };
+    // Interpreta lo dicho o escrito
+    const interpretar = (t) => {
+      const n = normal(t);
+      const o = opciones.find(op => [...(op.voz || []), op.texto].some(p => coincide(n, p)));
+      return o ? o.valor : (clasificar ? clasificar(t) : null);
+    };
+    const alEscribir = () => { escribiendo = true; detenerEscucha(); };
+    const alEnviar = (t, campo) => {
+      const v = interpretar(t);
+      if (v !== null && v !== undefined) return fin(v);
+      campo.value = '';
+      campo.placeholder = 'No le entendí. Toque un botón o escriba, por ejemplo, «sí» o «no».';
+    };
+    const zona = caja && caja.closest('.zona-voz');
     if (caja) {
       caja.innerHTML = '';
       opciones.forEach(o => caja.append(boton(o.texto, o.clase, () => fin(o.valor), o.icono, o.despues)));
+      if (zona) {
+        // En las pantallas con micrófono, el campo de la zona sirve para responder
+        const f = zona.querySelector('[data-escribir]');
+        const campo = f.querySelector('[data-campo]');
+        campo.value = '';
+        zona.querySelector('[data-escribir-etiqueta]').textContent = 'O escriba su respuesta';
+        campo.onfocus = campo.oninput = alEscribir;
+        f.onsubmit = (e) => { e.preventDefault(); const v = campo.value.trim(); if (v) alEnviar(v, campo); };
+      } else {
+        caja.append(formularioRespuesta('O escriba su respuesta', 'Enviar', alEnviar, alEscribir));
+      }
       mostrarControles(caja);
     }
     (async () => {
       while (!hecho && g === generacion && micOk) {
+        if (escribiendo) { await pausa(400); continue; }
         try {
           const t = await escuchar();
           if (hecho || g !== generacion) return;
-          const n = normal(t);
-          const o = opciones.find(op => (op.voz || []).some(p => coincide(n, p)));
-          const v = o ? o.valor : (clasificar ? clasificar(t) : null);
+          const v = interpretar(t);
           if (v !== null && v !== undefined) fin(v);
         } catch (e) { await pausa(300); }
       }
@@ -503,11 +550,11 @@ function clasificarOrden(t) {
   return 'duda';
 }
 
-// Carrera entre la voz y los botones. Resuelve { tipo, texto }
+// Carrera entre la voz, los botones y lo escrito. Resuelve { tipo, texto }
 function esperarOrden() {
   const g = generacion;
   return cancelable((resolver) => {
-    let hecho = false;
+    let hecho = false, escribiendo = false;
     const caja = controlesActivos();
     const fin = (orden) => {
       if (hecho) return;
@@ -518,19 +565,15 @@ function esperarOrden() {
     };
     caja.innerHTML = '';
     ORDENES.forEach(o => caja.append(boton(o.texto, o.clase, () => fin({ tipo: o.tipo, texto: o.tipo === 'duda' ? 'No entendí' : '' }), o.icono)));
+    // Siempre se puede escribir: «listo», «repita» o una duda
+    caja.append(formularioRespuesta('O escriba «listo» o su duda', 'Enviar',
+      (t) => fin({ tipo: clasificarOrden(t), texto: t }),
+      () => { escribiendo = true; detenerEscucha(); }));
     mostrarControles(caja);
 
-    // Sin micrófono: campo para escribir la duda
-    const campoDuda = () => {
-      if (hecho || caja.querySelector('form')) return;
-      const f = el(`<form class="escribir" style="width: 100%"><label for="duda-campo" style="font-weight: 700">¿Tiene una duda? Escríbala aquí:</label><input id="duda-campo" class="field" type="text" autocomplete="off"><div class="row"><button type="submit" class="btn btn-s btn-md">${icono('help', 26)}<span>Preguntar</span></button></div></form>`);
-      f.onsubmit = (e) => { e.preventDefault(); const v = f.querySelector('input').value.trim(); if (v) fin({ tipo: 'duda', texto: v }); };
-      caja.append(f);
-    };
-
     (async () => {
-      while (!hecho && g === generacion) {
-        if (!micOk) { campoDuda(); return; }
+      while (!hecho && g === generacion && micOk) {
+        if (escribiendo) { await pausa(400); continue; }
         try {
           const t = await escuchar();
           if (!hecho && g === generacion) fin({ tipo: clasificarOrden(t), texto: t });
@@ -545,15 +588,14 @@ function esperarOrden() {
    ========================================================= */
 function grabarHastaQueToque() {
   const g = generacion;
-  const btnT = $('#btn-terminar'), btnP = $('#btn-pausa'), caja = $('#transcripcion');
-  const mic = $('#e1-mic'), alt = $('#e1-alternar');
-  let segundos = 0, final = '', pausado = true, escribiendo = false;
+  const btnT = $('#btn-terminar'), btnP = $('#btn-pausa'), caja = $('#transcripcion'), mic = $('#e1-mic');
+  let segundos = 0, base = '', final = '', pausado = true;
   const dos = (n) => (n < 10 ? '0' : '') + n;
 
   return cancelable((resolver) => {
     const pintarTiempo = () => { $('#e1-tiempo').textContent = dos(Math.floor(segundos / 60)) + ':' + dos(segundos % 60); };
     const pintar = (parcial = '') => {
-      caja.value = (final + ' ' + parcial).trim();
+      caja.value = (base + ' ' + final + ' ' + parcial).replace(/\s+/g, ' ').trim();
       caja.scrollTop = caja.scrollHeight;
       btnT.disabled = !caja.value.trim();
     };
@@ -562,6 +604,7 @@ function grabarHastaQueToque() {
       $('#e1-punto').hidden = pausado;
       $('#e1-estado').textContent = pausado ? (segundos ? 'En pausa' : 'Listo para grabar') : 'Grabando';
       $('#e1-onda').classList.toggle('live', !pausado);
+      btnP.hidden = !micOk;
       btnP.innerHTML = pausado
         ? `${icono('mic', 26)}<span>${segundos ? 'Seguir grabando' : 'Empezar a grabar'}</span>`
         : `${icono('pause', 26)}<span>Pausar</span>`;
@@ -583,7 +626,7 @@ function grabarHastaQueToque() {
         pintar(parcial);
       };
       r.onerror = (e) => {
-        if (ERRORES_MIC.includes(e.error)) { micOk = false; modoEscritura(); }
+        if (ERRORES_MIC.includes(e.error)) { micOk = false; pausar(); $('#ensenar-aviso-mic').hidden = false; }
       };
       // Chrome corta la grabación cada cierto rato: se reanuda sola
       r.onend = () => {
@@ -593,14 +636,16 @@ function grabarHastaQueToque() {
       try { r.start(); } catch (e) { setTimeout(iniciar, 500); }
     };
     const grabar = () => {
-      if (!micOk) return modoEscritura();
+      if (!micOk) { $('#ensenar-aviso-mic').hidden = false; caja.focus(); return; }
+      base = caja.value.trim();   // lo que ya estaba escrito se conserva
+      final = '';
       pausado = false;
       grabando = true;
       callar();
       clearInterval(relojGrabacion);
       relojGrabacion = setInterval(() => { segundos++; pintarTiempo(); }, 1000);
       pintarEstado();
-      setEstado('escuchando', 'La escucho. Cuente con calma; cuando termine, toque «Terminé».');
+      setEstado('escuchando');
       iniciar();
     };
     const pausar = () => {
@@ -610,29 +655,11 @@ function grabarHastaQueToque() {
       detenerEscucha();
       pintarEstado();
     };
-    const modoEscritura = () => {
-      pausar();
-      escribiendo = true;
-      caja.readOnly = false;
-      $('#ensenar-aviso-mic').hidden = micOk;
-      alt.innerHTML = `${icono('mic', 26)}<span>Prefiero hablar</span>`;
-      alt.hidden = !micOk;
-      caja.focus();
-    };
-    const modoVoz = () => {
-      escribiendo = false;
-      caja.readOnly = true;
-      final = caja.value.trim() ? caja.value.trim() + ' ' : '';
-      alt.innerHTML = `${icono('keyboard', 26)}<span>Prefiero escribir</span>`;
-      grabar();
-    };
 
+    // Escribir pausa la grabación; el micrófono la retoma
+    caja.onfocus = () => { if (!pausado) pausar(); };
     caja.oninput = () => { btnT.disabled = !caja.value.trim(); };
-    mic.onclick = btnP.onclick = () => {
-      if (escribiendo) return modoVoz();
-      pausado ? grabar() : pausar();
-    };
-    alt.onclick = () => (escribiendo ? modoVoz() : modoEscritura());
+    mic.onclick = btnP.onclick = () => (pausado ? grabar() : pausar());
     btnT.onclick = () => {
       const t = caja.value.trim();
       if (!t) return;
@@ -641,12 +668,12 @@ function grabarHastaQueToque() {
     };
 
     caja.value = '';
-    caja.readOnly = true;
+    caja.readOnly = false;
     btnT.disabled = true;
-    alt.hidden = false;
-    $('#ensenar-aviso-mic').hidden = true;
+    $('#ensenar-aviso-mic').hidden = micOk;
     pintarTiempo();
-    if (micOk) grabar(); else modoEscritura();
+    pintarEstado();
+    if (micOk) grabar();
   });
 }
 
@@ -719,7 +746,10 @@ const PANTALLAS = {
 function irA(idPantalla) {
   const cfg = PANTALLAS[idPantalla] || {};
   document.querySelectorAll('.pantalla').forEach(s => { s.hidden = s.id !== idPantalla; });
+  const eraJoven = document.body.dataset.barra === 'joven';
   document.body.dataset.barra = cfg.barra || 'simple';
+  // Al cambiar entre la vista Aprender y la de personas mayores, los subtítulos parten de cero
+  if (eraJoven !== (cfg.barra === 'joven')) { ultimoTexto = ''; setEstado(null); }
   document.querySelectorAll('[data-seccion]').forEach(b => {
     const on = b.dataset.seccion === cfg.seccion;
     b.classList.toggle('on', on);
@@ -862,7 +892,7 @@ function pintarPuntos(caja, total, actual) {
     `<span style="background:${i < actual ? '#5B7B3A' : i === actual ? '#A9461F' : '#EADBC6'}"></span>`).join('');
 }
 
-// Tarjeta de guía (portada y vista jóvenes)
+// Tarjeta de guía (portada y vista Aprender)
 function tarjetaGuia(g, alTocar, joven = false) {
   const c = cat(g);
   const b = el(`<button type="button" class="tile ${joven ? 'tile-joven' : 'tile-guia'}">
@@ -908,12 +938,12 @@ async function flujoEntrar(g) {
   const dice = $('#entrar-dice');
   dice.textContent = 'Qué gusto tenerle de vuelta. Dígame su nombre y su palabra clave.';
   await hablar(dice.textContent);
-  let r = await pedirRespuesta({ etiqueta: 'Su nombre', boton: 'Seguir' });
+  let r = await pedirRespuesta({ etiqueta: 'O escriba su nombre', boton: 'Seguir' });
   let { nombre, clave } = r.escrito ? { nombre: limpiarRespuesta('nombre', r.texto), clave: '' } : separarNombreYClave(r.texto);
   if (!clave) {
     dice.textContent = `Gracias${nombre ? ', ' + primerNombre(nombre) : ''}. ¿Y su palabra clave?`;
     await hablar(dice.textContent);
-    r = await pedirRespuesta({ etiqueta: 'Su palabra clave', boton: 'Entrar' });
+    r = await pedirRespuesta({ etiqueta: 'O escriba su palabra clave', boton: 'Entrar' });
     clave = limpiarRespuesta('clave', r.texto);
   }
   const datos = await pensar(post('/api/entrar', { nombre, clave }));
@@ -984,7 +1014,7 @@ async function flujoRegistro(g) {
     pintarPregunta(i);
     await hablar((i === 0 ? 'Le doy la bienvenida a SABERES. ' : '') + `${p.q} ${p.h}`);
     while (true) {
-      const r = await pedirRespuesta({ etiqueta: 'Escriba su respuesta' });
+      const r = await pedirRespuesta({ etiqueta: 'O escriba su respuesta' });
       const valor = limpiarRespuesta(p.clave, r.texto);
       if (!valor) { await hablar('Disculpe, no alcancé a entender. Vamos de nuevo.'); continue; }
       if (r.escrito) { estadoRegistro.respuestas[p.clave] = valor; break; }
@@ -1091,7 +1121,7 @@ function calcularHitos(mias) {
     { t: 'Que 10 personas aprendan', ok: total >= 10 },
     { t: 'Grabar una lección de vida', ok: !!usuario.leccion },
     { t: 'Dar una clase por videollamada', ok: false },
-    { t: 'Acompañar a un joven', ok: false }
+    { t: 'Acompañar a alguien que aprende', ok: false }
   ];
   const sig = hitos.findIndex(h => !h.ok);
   hitos.forEach((h, i) => { h.estado = h.ok ? 'done' : i === sig ? 'next' : 'todo'; });
@@ -1110,23 +1140,23 @@ function interpretarMenu(t) {
   return null;
 }
 
-// Barra de voz de abajo: «O dígame qué quiere hacer»
+// Barra de voz de abajo: micrófono y campo para escribir, siempre juntos
 function escucharBarraInicio() {
   const g = generacion;
-  const mic = $('#c-mic'), linea = $('#c-voz-linea'), form = $('#c-escribir'), campo = $('#c-in'), alt = $('#c-alternar'), textoCaja = $('#c-voz-texto');
+  const mic = $('#c-mic'), linea = $('#c-voz-linea'), form = $('#c-escribir'), campo = $('#c-in');
   return cancelable((resolver) => {
     let hecho = false, intento = 0;
-    const fin = (t) => { if (hecho) return; hecho = true; intento++; detenerEscucha(); resolver(t); };
-    const escribir = (on) => {
-      form.hidden = !on;
-      textoCaja.hidden = on;
-      alt.innerHTML = on ? `${icono('mic', 26)}<span>Prefiero hablar</span>` : `${icono('keyboard', 26)}<span>Prefiero escribir</span>`;
-      if (on) { intento++; detenerEscucha(); micEstado(mic, 'idle'); campo.focus(); }
+    const fin = (t) => { if (hecho) return; hecho = true; intento++; detenerEscucha(); mic.onclick = form.onsubmit = campo.onfocus = campo.oninput = null; resolver(t); };
+    const pausarVoz = () => {
+      if (!mic.classList.contains('listening')) return;
+      intento++;
+      detenerEscucha();
+      micEstado(mic, 'idle');
+      linea.textContent = 'Escriba y toque «Listo», o toque el micrófono para hablar';
     };
     const oir = async () => {
-      if (hecho || g !== generacion) return;
+      if (hecho || g !== generacion || !micOk) return;
       const yo = ++intento;
-      escribir(false);
       micEstado(mic, 'listening');
       linea.textContent = 'La escucho…';
       try {
@@ -1138,17 +1168,16 @@ function escucharBarraInicio() {
       } catch (e) {
         if (hecho || yo !== intento) return;
         micEstado(mic, 'idle');
-        linea.textContent = 'O dígame qué quiere hacer';
-        if (!micOk) escribir(true);
+        linea.textContent = micOk ? 'O dígame qué quiere hacer' : 'El micrófono no está disponible. Escriba aquí abajo.';
       }
     };
     mic.onclick = () => { if (!mic.classList.contains('listening')) oir(); };
-    alt.onclick = () => (form.hidden ? escribir(true) : oir());
-    form.onsubmit = (e) => { e.preventDefault(); const v = campo.value.trim(); if (v) fin(v); };
+    campo.onfocus = campo.oninput = pausarVoz;
+    form.onsubmit = (e) => { e.preventDefault(); const v = campo.value.trim(); if (v) fin(v); else campo.focus(); };
     campo.value = '';
     micEstado(mic, 'idle');
-    linea.textContent = 'O dígame qué quiere hacer';
-    if (micOk) oir(); else escribir(true);
+    linea.textContent = micOk ? 'O dígame qué quiere hacer' : 'El micrófono no está disponible. Escriba aquí abajo.';
+    if (micOk) oir();
   });
 }
 
@@ -1214,7 +1243,7 @@ async function flujoAprender(g, args = {}) {
   dice.textContent = 'Dígamelo con sus palabras. Por ejemplo: «quiero ver a mis nietos por el celular».';
   if (!pregunta) await hablar('¿Qué quiere aprender hoy? ' + dice.textContent);
   while (true) {
-    if (!pregunta) pregunta = (await pedirRespuesta({ etiqueta: 'Escriba qué quiere aprender', boton: 'Empezar' })).texto;
+    if (!pregunta) pregunta = (await pedirRespuesta({ etiqueta: 'O escriba qué quiere aprender', boton: 'Empezar' })).texto;
     dice.textContent = 'Déjeme buscar…';
     const guia = await pensar(post('/api/buscar', { pregunta }));
     vigente(g);
@@ -1561,7 +1590,7 @@ async function flujoPublicada(g, { guia }) {
       </div>`;
   await hablar(`${$('#e4-titulo').textContent} ${$('#e4-dice').textContent} ¡Gracias por compartir lo que sabe, ${primerNombre(usuario.nombre)}!`);
   const v = await elegir([
-    ...(revision ? [] : [{ texto: 'Ver cómo la ven los jóvenes', clase: 'btn-p', valor: 'joven', voz: ['jovenes', 'ver como'] }]),
+    ...(revision ? [] : [{ texto: 'Ver cómo la ven quienes aprenden', clase: 'btn-p', valor: 'joven', voz: ['ver como', 'ver'] }]),
     { texto: 'Volver al inicio', clase: 'btn-s', icono: 'home', valor: 'inicio', voz: ['inicio', 'volver'] }
   ]);
   return v === 'joven' ? abrir('guia-joven', { guia }) : abrir('inicio');
@@ -1619,8 +1648,8 @@ async function flujoLeccion(g) {
   if (!requiereUsuario()) return;
   $('#f2-grabar').hidden = false;
   $('#f2-resultado').hidden = true;
-  await hablar('Cuénteme un momento difícil de su vida y qué aprendió de él. Yo lo ordeno en cuatro partes para que un joven lo entienda. Cuando termine, toque el micrófono.');
-  const r = await pedirRespuesta({ etiqueta: 'Escriba su historia', boton: 'Ordenar mi historia', continuo: true });
+  await hablar('Cuénteme un momento difícil de su vida y qué aprendió de él. Yo lo ordeno en cuatro partes para que cualquier persona lo entienda. Cuando termine, toque el micrófono.');
+  const r = await pedirRespuesta({ etiqueta: 'O escriba su historia', boton: 'Ordenar mi historia', continuo: true });
   const leccion = await pensar(pausa(1200).then(() => window.MOCK.armarLeccion(r.texto, usuario)));
   vigente(g);
   usuario.leccion = true;
@@ -1630,7 +1659,7 @@ async function flujoLeccion(g) {
   window.scrollTo(0, 0);
   await hablar(`Así quedó su lección. Le puse el título con sus propias palabras: «${leccion.titulo}».`);
   const v = await elegir([
-    { texto: 'Compartir con jóvenes que viven lo mismo', clase: 'btn-p', icono: 'users', valor: 'compartir', voz: ['compart', 'si', 'dale'] },
+    { texto: 'Compartir con quienes viven lo mismo', clase: 'btn-p', icono: 'users', valor: 'compartir', voz: ['compart', 'si', 'dale'] },
     { texto: 'Cambiar algo', clase: 'btn-s', icono: 'edit', valor: 'cambiar', voz: ['cambi', 'corrig', 'no'] }
   ]);
   if (v === 'cambiar') return abrir('leccion');
@@ -1641,10 +1670,10 @@ async function flujoLeccion(g) {
   });
   const listo = el(`<div class="card fade" style="width: 100%; padding: 28px; display: flex; gap: 20px; align-items: center; flex-wrap: wrap; background: #EEF3E6; border-color: #B9CBA0">
       <span class="circulo-ok" style="width: 64px; height: 64px; box-shadow: none">${icono('check', 36)}</span>
-      <p style="flex-grow: 1; font-weight: 700; font-size: 1.1em">Listo. Su lección ya acompaña a jóvenes que viven lo mismo.</p>
+      <p style="flex-grow: 1; font-weight: 700; font-size: 1.1em">Listo. Su lección ya acompaña a quienes viven lo mismo.</p>
     </div>`);
   ponerControles(listo);
-  await hablar('Listo. Su lección ya acompaña a jóvenes que viven lo mismo.');
+  await hablar('Listo. Su lección ya acompaña a quienes viven lo mismo.');
   const fin = await elegir([
     { texto: 'Ver cómo la ven', clase: 'btn-o', valor: 'ver', voz: ['ver'] },
     { texto: 'Volver al inicio', clase: 'btn-s', icono: 'home', valor: 'inicio', voz: ['inicio', 'volver'] }
@@ -1705,7 +1734,7 @@ async function flujoMisGuias(g) {
     lista.append(el(`<li class="card mi-guia">
         <span class="icono-caja" style="width: 64px; height: 64px; border-radius: 18px; background: ${c.bg}; color: ${c.fg}">${icono(iconoGuia(guia), 36)}</span>
         <div style="flex-grow: 1; min-width: 200px"><p style="font-weight: 700; font-size: 1.1em">${esc(guia.titulo)}</p><p style="font-size: .85em">${esc(fecha)}</p></div>
-        <p class="mi-guia-num"><span style="font-size: 1.6em">${Number(guia.aprendieron) || 0}</span><br><span style="font-size: .85em">${leccion ? 'jóvenes la guardaron' : 'personas aprendieron'}</span></p>
+        <p class="mi-guia-num"><span style="font-size: 1.6em">${Number(guia.aprendieron) || 0}</span><br><span style="font-size: .85em">${leccion ? 'personas la guardaron' : 'personas aprendieron'}</span></p>
       </li>`));
   });
 
@@ -1722,7 +1751,7 @@ async function flujoMisGuias(g) {
 }
 
 /* =========================================================
-   Vista jóvenes · J1 Explorar
+   Vista Aprender · J1 Explorar (para cualquier persona)
    ========================================================= */
 let guiasJovenes = [];
 
@@ -1749,7 +1778,7 @@ function pintarListaJovenes() {
   const lista = $('#lista-jovenes');
   lista.innerHTML = '';
   visibles.forEach(guia => lista.append(tarjetaGuia(guia, () => abrir('guia-joven', { guia }), true)));
-  if (!visibles.length) lista.append(el('<p class="card" style="padding: 28px; grid-column: 1 / -1">No hay guías con esa búsqueda todavía. Prueba con otra palabra o categoría.</p>'));
+  if (!visibles.length) lista.append(el('<p class="card" style="padding: 28px; grid-column: 1 / -1">No hay guías con esa búsqueda todavía. Pruebe con otra palabra o categoría.</p>'));
 }
 
 function pintarJovenUsuario() {
@@ -1770,7 +1799,7 @@ async function flujoJovenes(g) {
 }
 
 /* =========================================================
-   J2 · Guía (jóvenes)
+   J2 · Guía (vista Aprender)
    ========================================================= */
 function pintarAvanceJoven(total, hechos) {
   $('#j2-avance-texto').textContent = `${hechos} de ${total} pasos`;
@@ -1788,7 +1817,7 @@ async function flujoGuiaJoven(g, { guia }) {
 
   const cuerpo = $('#j2-cuerpo');
   const gracias = `<div class="card" style="padding: 28px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; background: #FFFDF8" id="j2-resulto">
-      <p style="font-size: 22px; font-weight: 700">${guia.leccion ? '¿Te sirvió?' : '¿Te resultó?'}</p>
+      <p style="font-size: 22px; font-weight: 700">${guia.leccion ? '¿Le sirvió?' : '¿Le resultó?'}</p>
       <button type="button" class="btn btn-p" id="j2-gracias" style="font-size: 21px">${icono('heart', 26)}<span>¡Aprendí! Darle las gracias ${esc(aQuien(pn))}</span></button>
     </div>`;
   if (guia.leccion) {
@@ -1803,10 +1832,10 @@ async function flujoGuiaJoven(g, { guia }) {
     const pasos = guia.pasos || [];
     const hechos = new Set();
     cuerpo.innerHTML = `<div>
-        <div style="display: flex; justify-content: space-between; font-weight: 700"><span>Tu avance</span><span id="j2-avance-texto"></span></div>
+        <div style="display: flex; justify-content: space-between; font-weight: 700"><span>Su avance</span><span id="j2-avance-texto"></span></div>
         <div class="barra-suave" style="height: 12px; margin-top: 8px"><div id="j2-barra" class="barra-verde" style="background: #3F5A24"></div></div>
       </div>
-      ${(guia.materiales || []).length ? `<div class="card" style="padding: 20px 24px"><p style="font-weight: 700">Necesitas</p><p class="row" style="gap: 8px; margin-top: 10px">${guia.materiales.map(m => `<span class="pill" style="background: #F6EBDA; font-weight: 400; font-size: 15px">${esc(m)}</span>`).join('')}</p></div>` : ''}
+      ${(guia.materiales || []).length ? `<div class="card" style="padding: 20px 24px"><p style="font-weight: 700">Va a necesitar</p><p class="row" style="gap: 8px; margin-top: 10px">${guia.materiales.map(m => `<span class="pill" style="background: #F6EBDA; font-weight: 400; font-size: 15px">${esc(m)}</span>`).join('')}</p></div>` : ''}
       <ol style="display: flex; flex-direction: column; gap: 12px" id="j2-pasos"></ol>
       ${gracias}`;
     const ol = $('#j2-pasos');
@@ -1870,12 +1899,12 @@ async function flujoGraciasJoven(g, { guia }) {
   $('#j3-enviado').hidden = true;
   sec.querySelector('.confetti').innerHTML = '';
   $('#j3-retrato').innerHTML = avatar(guia, 128);
-  $('#j3-titulo').textContent = guia.leccion ? `¿Te sirvió la historia ${deQuien(pn)}?` : `¿Te resultó «${guia.titulo}»?`;
-  $('#j3-sub').textContent = `Cuéntale ${aQuien(pn)}. Le llegará tu mensaje por WhatsApp, leído en voz alta.`;
+  $('#j3-titulo').textContent = guia.leccion ? `¿Le sirvió la historia ${deQuien(pn)}?` : `¿Le resultó «${guia.titulo}»?`;
+  $('#j3-sub').textContent = `Cuéntele ${aQuien(pn)}. Le llegará su mensaje por WhatsApp, leído en voz alta.`;
   $('#nombre-joven').value = leerLocal('saberes-joven') || '';
   const msg = $('#j3-msg');
   msg.value = '';
-  msg.placeholder = `Escríbele algo ${aQuien(pn)}`;
+  msg.placeholder = `Escríbale algo ${aQuien(pn)}`;
   const rapidos = ['¡Me quedó muy bien! Gracias.', `Gracias por la paciencia, ${pn}.`, 'Lo hice para mi familia.'];
   const caja = $('#j3-rapidos');
   caja.innerHTML = '';
@@ -1893,7 +1922,7 @@ async function flujoGraciasJoven(g, { guia }) {
 
   await cancelable((resolver) => { enviar.onclick = () => resolver(); });
   enviar.disabled = true;
-  const aprendiz = $('#nombre-joven').value.trim() || 'Un joven';
+  const aprendiz = $('#nombre-joven').value.trim() || 'Una persona';
   if ($('#nombre-joven').value.trim()) guardarLocal('saberes-joven', aprendiz);
   const mensaje = msg.value.trim() || '¡Gracias por enseñarme!';
   const r = await pensar(post('/api/aprendi', { guiaId: guia.id, aprendiz, mensaje }));
@@ -1903,7 +1932,7 @@ async function flujoGraciasJoven(g, { guia }) {
   $('#j3-pendiente').hidden = true;
   $('#j3-enviado').hidden = false;
   lanzarConfeti(sec);
-  $('#j3-ok').textContent = `${pn} recibirá tu gracias por WhatsApp`;
+  $('#j3-ok').textContent = `${mayus(pn)} recibirá su agradecimiento por WhatsApp`;
   $('#j3-wa').innerHTML = `<p class="con-icono" style="gap: 8px; font-size: 14px; font-weight: 700"><span class="wa-ico" style="width: 22px; height: 22px; border-radius: 6px">${icono('chat', 14)}</span>WhatsApp · SABERES</p>
     <p style="font-weight: 700; margin-top: 8px">${esc(aprendiz)} aprendió su ${esc(guia.titulo.toLowerCase())} gracias a usted.</p>
     <p style="margin-top: 4px">«${esc(mensaje)}»</p>`;
@@ -1956,7 +1985,8 @@ async function flujoExperiencia() {
 function textoDePantalla() {
   const sec = document.querySelector('.pantalla:not([hidden])');
   if (!sec) return '';
-  return [...sec.querySelectorAll('h1, .bubble p:not(.bubble-titulo)')]
+  const selector = document.body.dataset.barra === 'joven' ? 'h1, h1 + p, .tile-guia-titulo, .steprow, .bloque, .leccion-card h2' : 'h1, .bubble p:not(.bubble-titulo)';
+  return [...sec.querySelectorAll(selector)]
     .filter(visible).map(e => e.textContent.trim()).filter(Boolean).join('. ').replace(/\.\./g, '.');
 }
 
@@ -1992,6 +2022,24 @@ function teclado(e) {
   }
 }
 
+// El parlante junto a cada globo «SABERES le dice» lee ese mensaje en voz alta
+function hacerParlantesTocables() {
+  document.querySelectorAll('.dice > .speaker').forEach(sp => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'speaker speaker-boton';
+    b.innerHTML = sp.innerHTML;
+    b.setAttribute('aria-label', 'Escuchar este mensaje');
+    b.title = 'Escuchar este mensaje';
+    b.addEventListener('click', () => {
+      const burbuja = b.parentElement.querySelector('.bubble');
+      const texto = [...burbuja.querySelectorAll('h1, p:not(.bubble-titulo)')].map(e => e.textContent.trim()).filter(Boolean).join(' ');
+      if (texto) hablar(texto).catch(() => {});
+    });
+    sp.replaceWith(b);
+  });
+}
+
 /* =========================================================
    Menú de demo (tecla D) para presentar frente al jurado
    ========================================================= */
@@ -2003,10 +2051,10 @@ const GRUPOS_DEMO = [
   { g: 'INICIO Y APRENDER', items: [['inicio', 'C · Inicio'], ['aprender', 'D1 · ¿Qué quiere aprender?'], ['guia', 'D2 · Paso a paso'], ['logro', 'D3 · ¡Lo logró!']] },
   { g: 'ENSEÑAR', items: [['ensenar', 'E1 · Grabar'], ['ordenando', 'E2 · Ordenando'], ['guia-creada', 'E3 · Guía creada'], ['publicada', 'E4 · Publicada']] },
   { g: 'MI HISTORIA Y GRACIAS', items: [['mi-historia', 'F1 · Mi sueño'], ['leccion', 'F2 · Lección de vida'], ['mis-guias', 'G · Guías y gracias']] },
-  { g: 'VISTA JÓVENES', items: [['jovenes', 'J1 · Explorar'], ['guia-joven', 'J2 · Guía'], ['gracias-joven', 'J3 · Dar las gracias'], ['experiencia', 'J4 · Por experiencia']] }
+  { g: 'VISTA APRENDER', items: [['jovenes', 'J1 · Explorar'], ['guia-joven', 'J2 · Guía'], ['gracias-joven', 'J3 · Dar las gracias'], ['experiencia', 'J4 · Por experiencia']] }
 ];
 const RECORRIDO_DEMO = [['bienvenida', 'Portada'], ['registro', 'Registro'], ['perfil', 'Perfil'], ['inicio', 'Inicio'], ['ensenar', 'Enseñar'],
-  ['guia-creada', 'Guía creada'], ['publicada', 'Publicada'], ['jovenes', 'Joven explora'], ['gracias-joven', 'Da las gracias'], ['mis-guias', 'WhatsApp'], ['mi-historia', 'Su sueño']];
+  ['guia-creada', 'Guía creada'], ['publicada', 'Publicada'], ['jovenes', 'Alguien explora'], ['gracias-joven', 'Da las gracias'], ['mis-guias', 'WhatsApp'], ['mi-historia', 'Su sueño']];
 
 async function irDemo(id) {
   $('#demo').hidden = true;
@@ -2073,6 +2121,14 @@ function init() {
   $('#btn-soy-mayor').addEventListener('click', () => abrir(usuario ? 'inicio' : 'bienvenida'));
   $('#btn-escuchar-pagina').addEventListener('click', alternarLectura);
   $('#btn-detener').addEventListener('click', () => { callar(); setEstado(null); });
+  $('#btn-otra-vez').addEventListener('click', () => { if (ultimoTexto) hablar(ultimoTexto).catch(() => {}); });
+  $('#btn-escuchar-joven').addEventListener('click', () => {
+    const b = $('#btn-escuchar-joven');
+    if (b.classList.contains('on')) { callar(); setEstado(null); return; }
+    const t = textoDePantalla();
+    if (t) { hablar(t).catch(() => {}); b.classList.add('on'); }
+  });
+  hacerParlantesTocables();
   document.querySelectorAll('[data-fs]').forEach(b => b.addEventListener('click', () => ponerTamano(Number(b.dataset.fs))));
   $('#j-buscar').addEventListener('submit', (e) => { e.preventDefault(); pintarListaJovenes(); });
   $('#buscador').addEventListener('input', pintarListaJovenes);

@@ -28,6 +28,9 @@ body { margin: 0; background: #FFF8EE; }
 .sb button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: inherit; }
 .sb a { color: #8E3717; }
 .sb :focus { outline: none; }
+.sb [tabindex="-1"]:focus-visible { outline: none; }
+#barra-joven .navlink, #barra-joven .pill, #barra-joven .listen, #barra-joven .btn, .joven-usuario { white-space: nowrap; }
+#barra-joven .barra-principal { row-gap: 4px; padding-top: 6px; padding-bottom: 6px; }
 .sb :focus-visible { outline: 4px solid #2B1D14; outline-offset: 4px; }
 .sb .dark :focus-visible { outline-color: #FFF8EE; }
 .sb input:focus-visible, .sb textarea:focus-visible { outline: 4px solid #A9461F; outline-offset: 2px; }
@@ -110,7 +113,9 @@ body[data-barra="joven"] .fila-volver { font-size: 18px; }
 .bubble-alt { background: #FFF1D6; box-shadow: 6px 6px 0 #EBCB8B; }
 .bubble-titulo { font-size: .8em; font-weight: 700; color: #8E3717; }
 .bubble-alt .bubble-titulo { color: #6B4A0E; }
-.speaker { flex: none; width: 64px; height: 64px; border-radius: 50%; background: #C4552D; color: #FFFFFF; display: flex; align-items: center; justify-content: center; }
+.sb .speaker { flex: none; width: 64px; height: 64px; border-radius: 50%; background: #C4552D; color: #FFFFFF; display: flex; align-items: center; justify-content: center; }
+.sb .speaker-boton { cursor: pointer; transition: transform 300ms, box-shadow 300ms; box-shadow: 0 0 0 0 rgba(196, 85, 45, .35); }
+.sb .speaker-boton:hover { transform: scale(1.08); box-shadow: 0 0 0 8px rgba(196, 85, 45, .18); }
 .eq { display: inline-flex; gap: 3px; align-items: flex-end; height: 16px; }
 .eq i { display: block; width: 4px; height: 6px; background: currentColor; border-radius: 2px; animation: eq .9s ease-in-out infinite; }
 .eq i:nth-child(2) { animation-delay: .15s; }
@@ -145,7 +150,14 @@ body[data-barra="joven"] .fila-volver { font-size: 18px; }
 .oido { padding: 24px 28px; background: #FFFDF8; }
 .oido-titulo { font-size: .85em; font-weight: 700; }
 .oido-texto { font-size: 1.3em; font-weight: 700; margin-top: 6px; overflow-wrap: anywhere; }
-.escribir { display: flex; flex-direction: column; gap: 16px; }
+.escribir { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+.escribir-fila { display: flex; gap: 12px; align-items: stretch; }
+.escribir-fila .field { flex: 1; min-width: 0; }
+.escribir-fila-larga { flex-direction: column; align-items: flex-start; }
+.escribir-chico { font-size: .85em; margin-top: 4px; }
+.escribir-chico .field { min-height: 60px; font-size: 1em; padding: 10px 18px; border-width: 2px; }
+.mic-caja.sin-mic .mic, .mic-caja.sin-mic .mic-ayuda { display: none; }
+.barra-voz-col { flex-grow: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .sb .zona-voz > .btn-ghost { align-self: center; }
 
 /* Onda de audio */
@@ -256,7 +268,8 @@ textarea.field { resize: vertical; line-height: 1.4; }
 /* ---------- C · Inicio ---------- */
 .barra-voz { position: sticky; bottom: var(--alto-lectura, 0px); z-index: 30; background: #FFF8EE; border-top: 2px solid #EFDCC2; box-shadow: 0 -14px 30px -20px rgba(43, 29, 20, .4); }
 .barra-voz-fila { display: flex; align-items: center; gap: 20px; min-height: 128px; padding-top: 18px; padding-bottom: 18px; }
-.c-escribir { flex-grow: 1; display: flex; gap: 12px; align-items: center; }
+.c-escribir { display: flex; gap: 12px; align-items: center; }
+.c-escribir .field { flex: 1; min-width: 0; }
 .gracias-item { display: flex; gap: 14px; }
 
 /* ---------- D2 · Guía paso a paso ---------- */
@@ -356,9 +369,11 @@ textarea.field { resize: vertical; line-height: 1.4; }
 @keyframes subir { from { transform: translateY(24px); } to { transform: none; } }
 .lectura-fila { display: flex; align-items: center; gap: 20px; min-height: 104px; padding-top: 16px; padding-bottom: 16px; }
 .lectura-titulo { font-size: .8em; font-weight: 700; color: #E3A72F; }
+.lectura .btn { white-space: nowrap; flex: none; }
 .subtitulo { margin-top: 4px; }
-.lectura .speaker.pensando { background: #3F5A24; }
-.lectura .speaker.escuchando { background: #FFF8EE; color: #A9461F; }
+.sb .lectura .speaker.pensando { background: #3F5A24; }
+.sb .lectura .speaker.escuchando { background: #FFF8EE; color: #A9461F; }
+.lectura[data-estado="reposo"] .lectura-titulo { color: #F1D9BC; }
 body[data-barra="joven"] .lectura { font-size: 20px; }
 
 /* ---------- Menú de demo ---------- */
