@@ -39,7 +39,7 @@
 - [x] ~~Actualizar el README~~ → ahora describe Supabase, `npm start`, la arquitectura real y qué hace la IA.
 - [ ] **Cargar secretos de Zavu en Supabase** → [Edge Functions → Secrets](https://supabase.com/dashboard/project/qpaolqiurfnpdhzilxwe/functions/secrets):
   - `ZAVUDEV_API_KEY`: la llave `zv_test_` ya la tiene P2 (está en su `.env` local).
-  - `NUMERO_DEMO`: **falta el número** (formato `+569…`) del celular que recibe el "gracias". Con llave `zv_test_` ese celular debe estar inscrito como miembro del equipo en Zavu.
+  - `NUMERO_DEMO`: el número ya lo tiene P2 (está en su `.env` local). Con llave `zv_test_` ese celular debe estar inscrito como miembro del equipo en Zavu.
   - Opcional: `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID`.
   - No hace falta volver a desplegar: los secretos se leen solos.
 - [ ] **Seguridad** (encontrado en revisión automática; no bloquea la demo):
