@@ -1,7 +1,7 @@
 # P3 – Integraciones: el "gracias" por WhatsApp
 
-> Estado: **listo en la branch `p3-integraciones`**, pendiente de unir a `main`.
-> Esa branch ya incluye `main` y `andy-backend` (P2) y se une con ambas **sin conflictos**.
+> Estado: **unido a `main`** junto con el backend de P2 (`andy-backend`).
+> Falta cargar los secretos de Zavu en Supabase y volver a desplegar la función (ver checklist).
 
 ## Qué hace
 
@@ -17,7 +17,7 @@ Ejemplos:
 
 La nota del aprendiz ("Le dice…") se mantiene, con el mismo filtro de P2 (sin links ni teléfonos). Si no es hito, no se envía nada.
 
-## Dónde está el código (branch `p3-integraciones`)
+## Dónde está el código
 
 | Archivo | Cambio |
 |---|---|
@@ -46,7 +46,7 @@ avisarGracias({
 ## ✅ Checklist por persona
 
 **P2 (backend)**
-- [ ] Revisar y unir `p3-integraciones` (o pedirme que la una a `andy-backend`).
+- [x] ~~Unir `p3-integraciones`~~ (ya está en `main`). Si sigues trabajando en `andy-backend`, haz `git merge main` para traer los avisos.
 - [ ] Cargar secretos en Supabase → Edge Functions → Secrets: `ZAVUDEV_API_KEY`, `NUMERO_DEMO` (opcional: `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID`).
 - [ ] Volver a desplegar la función `api`.
 - [ ] `AVISO` y `ZAVU_CANAL`, si ya estaban cargados, ahora se ignoran.

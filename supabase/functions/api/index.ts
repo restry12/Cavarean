@@ -6,6 +6,7 @@
 // =========================================================
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { ordenarGuia, explicarPaso, tipoNombre } from "./ia.js";
+import { avisarGracias } from "./avisos.js";
 
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
   auth: { persistSession: false },
@@ -177,48 +178,23 @@ async function descartar({ id, usuarioId }: any) {
   return json({ ok: true });
 }
 
-// ---------- El gracias al autor ----------
-async function avisarAutor(to: string, texto: string) {
-  const zavu = Deno.env.get("ZAVUDEV_API_KEY"), tg = Deno.env.get("TELEGRAM_TOKEN");
-  try {
-    if (Deno.env.get("AVISO") === "zavu" && zavu && to) {
-      // Verificar endpoint y campos en la documentación de Zavu antes de la demo
-      const r = await fetch("https://api.zavu.dev/v1/messages", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${zavu}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ to, text: texto, channel: Deno.env.get("ZAVU_CANAL") || "whatsapp" }),
-        signal: AbortSignal.timeout(9000),
-      });
-      if (r.ok) return;
-      console.warn("[aviso] Zavu respondió", r.status);
-    }
-    if (tg) {
-      const r = await fetch(`https://api.telegram.org/bot${tg}/sendMessage`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: Deno.env.get("TELEGRAM_CHAT_ID"), text: texto }),
-        signal: AbortSignal.timeout(9000),
-      });
-      if (r.ok) return;
-      console.warn("[aviso] Telegram respondió", r.status);
-    }
-    console.info(`[aviso] simulado: ${texto}`);
-  } catch (e) { console.warn("[aviso] falló:", (e as Error).message); }
-}
-
+// ---------- El gracias al autor (envío y hitos en avisos.js) ----------
 async function aprendi({ guiaId, aprendiz, mensaje }: any) {
   const { data: total, error } = await db.rpc("sumar_aprendieron", { guia_id: guiaId ?? "" });
   if (error) throw error;
   if (total == null) return json({ ok: false, error: "No encontré esa guía." }, 404);
 
-  const { data: g } = await db.from("guias").select("titulo,autor_id").eq("id", guiaId).single();
+  const { data: g } = await db.from("guias").select("titulo,autor,autor_id").eq("id", guiaId).single();
   const { data: autor } = await db.from("usuarios").select("telefono").eq("id", g!.autor_id ?? "").maybeSingle();
   const nombre = String(aprendiz || "Alguien").trim().slice(0, 40);
   // El mensaje del joven va al WhatsApp de una persona mayor: sin links ni teléfonos
   const nota = String(mensaje ?? "").replace(/\s+/g, " ").trim().slice(0, 200);
   const seguro = nota && !/https?:\/\/|www\.|\b[\w-]+\.(?:cl|com|net|org|ly)\b|(?:\d[\s.-]?){7,}/i.test(nota);
-  const texto = `${nombre} aprendió «${g!.titulo}» gracias a usted.${seguro ? ` Le dice: "${nota}"` : ""} ¡Gracias por enseñar en SABERES! 💛`;
-  // Se responde al tiro; el mensaje sigue saliendo en segundo plano
-  const envio = avisarAutor(autor?.telefono || Deno.env.get("NUMERO_DEMO") || "", texto);
+  // Se responde al tiro; el mensaje (solo en hitos) sigue saliendo en segundo plano
+  const envio = avisarGracias({
+    telefono: autor?.telefono, autor: g!.autor, titulo: g!.titulo,
+    aprendiz: nombre, aprendieron: total, nota: seguro ? nota : "",
+  });
   // @ts-ignore EdgeRuntime existe en Supabase
   globalThis.EdgeRuntime?.waitUntil(envio);
   return json({ ok: true, aprendieron: total });
