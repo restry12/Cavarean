@@ -71,6 +71,8 @@ const visible = (e) => !!e && !e.closest('[hidden]');
 const cat = (g) => CATEGORIAS[g.categoria] || { nombre: mayus(g.categoria || 'Guía'), icono: 'book', bg: '#F6EBDA', fg: '#2B1D14' };
 const iconoGuia = (g) => g.icono || cat(g).icono;
 const textoAprendieron = (n) => `${Number(n) || 0} aprendieron`;
+// Nueva: nadie ha aprendido con ella todavía (la de Rosa en la demo parte en 0)
+const esNueva = (g) => !!g.nueva || !Number(g.aprendieron);
 
 function leerLocal(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function guardarLocal(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } }
@@ -966,7 +968,7 @@ function tarjetaGuia(g, alTocar, joven = false) {
   const b = el(`<button type="button" class="tile ${joven ? 'tile-joven' : 'tile-guia'}">
       <span class="tile-guia-banda" style="background:${c.bg};color:${c.fg}">
         ${icono(iconoGuia(g), joven ? 64 : 72, 1.6)}
-        ${joven && g.nueva ? '<span class="pill" style="position:absolute;top:12px;left:12px;background:#2B1D14;color:#FFF8EE;font-size:14px">Nueva</span>' : ''}
+        ${joven && esNueva(g) ? '<span class="pill" style="position:absolute;top:12px;left:12px;background:#2B1D14;color:#FFF8EE;font-size:14px">Nueva</span>' : ''}
         ${joven ? `<span class="pill" style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,.85);color:#2B1D14;font-size:14px">${esc(c.nombre)}</span>` : ''}
       </span>
       <span class="tile-guia-cuerpo">
@@ -986,7 +988,7 @@ function tarjetaGuia(g, alTocar, joven = false) {
 async function flujoBienvenida(g) {
   const guias = (await traerGuias()).filter(x => x.estado !== 'en revisión');
   vigente(g);
-  const orden = guias.slice().sort((a, b) => (b.nueva ? 1 : 0) - (a.nueva ? 1 : 0) || (b.aprendieron || 0) - (a.aprendieron || 0));
+  const orden = guias.slice().sort((a, b) => esNueva(b) - esNueva(a) || (b.aprendieron || 0) - (a.aprendieron || 0));
   const caja = $('#destacadas');
   caja.innerHTML = '';
   orden.slice(0, 4).forEach(guia => caja.append(tarjetaGuia(guia, () => abrir('guia-joven', { guia }))));
@@ -1842,8 +1844,8 @@ function pintarListaJovenes() {
     if (filtroCategoria !== 'todas' && guia.categoria !== filtroCategoria) return false;
     const texto = normal([guia.titulo, cat(guia).nombre, guia.autor, guia.comuna, ...(guia.materiales || []), ...(guia.claves || [])].join(' '));
     return palabras.every(p => texto.includes(p));
-  }).sort((a, b) => (b.aprendieron || 0) - (a.aprendieron || 0));
-  $('#j-cuenta').textContent = `${visibles.length === 1 ? '1 guía' : visibles.length + ' guías'} · las más agradecidas primero`;
+  }).sort((a, b) => esNueva(b) - esNueva(a) || (b.aprendieron || 0) - (a.aprendieron || 0));
+  $('#j-cuenta').textContent = `${visibles.length === 1 ? '1 guía' : visibles.length + ' guías'} · las nuevas y las más agradecidas primero`;
   const lista = $('#lista-jovenes');
   lista.innerHTML = '';
   visibles.forEach(guia => lista.append(tarjetaGuia(guia, () => abrir('guia-joven', { guia }), true)));

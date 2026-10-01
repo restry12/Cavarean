@@ -26,11 +26,12 @@
 
 ## 🎨 P1 – Interfaz
 
-- [ ] **Borrar restos de la idea anterior (MODO SENIOR+)**, que nadie usa: `public/demo.json`, `public/semaforo.json` y `public/fotos/` (7 SVG). El respaldo real es `mock.js`.
-- [ ] **Guion de la demo:** en el momento 3, el jurado debe abrir **la guía nueva de Rosa** (parte en 0). Si abre una precargada (ej. 58 → 59) **no sale WhatsApp** por los hitos. Destacarla primero en la vista de jóvenes ayuda.
-- [ ] Verificar el **clic inicial** para que Chrome permita el audio (riesgo del plan).
-- [ ] **Capturas de pantalla** de las vistas para el README y las slides.
-- [ ] Decidir si se suma la pregunta opcional del **celular de un familiar** (el plan la tiene; hoy no está). Para la demo es mejor sin ella: el aviso siempre llega a `NUMERO_DEMO`.
+- [x] ~~Borrar restos de MODO SENIOR+~~ → borrados `demo.json`, `semaforo.json` y `public/fotos/` (nadie los usaba).
+- [x] ~~Destacar la guía nueva de Rosa~~ → las guías con 0 aprendieron salen **primero** y con la etiqueta *Nueva*, en la vista de jóvenes y en la bienvenida.
+- [ ] **Guion de la demo:** en el momento 3, el jurado abre **la primera guía de la lista** (la nueva de Rosa, en 0). Si abre una precargada (ej. 58 → 59) **no sale WhatsApp** por los hitos. Antes de la demo, correr `reiniciar_demo()` para que no quede otra guía de prueba en 0 que le gane el primer lugar.
+- [x] ~~Verificar el clic inicial del audio~~ → la bienvenida no habla sola; la primera voz sale siempre después de un toque, y Chrome recuerda ese toque para toda la página (probado en Chrome con la voz de Mistral). Si se recarga la página a mitad de la demo, tocar cualquier botón antes de que hable.
+- [x] ~~Capturas~~ → `docs/capturas/` (bienvenida, explorar guías, guía paso a paso), ya en el README. Faltan las de la vista de mayores con sesión iniciada si se quieren en las slides.
+- [x] ~~Celular de un familiar~~ → **no se suma**: para la demo el aviso siempre llega a `NUMERO_DEMO`. Queda como próximo paso.
 - [ ] Día de la demo: **maneja la vista de mayores**.
 
 ## 🧠 P2 – IA y backend
