@@ -7,6 +7,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { ordenarGuia, explicarPaso, tipoNombre } from "./ia.js";
 import { avisarGracias } from "./avisos.js";
+import { hayVoz, sintetizar } from "./voz.js";
 
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
   auth: { persistSession: false },
@@ -200,6 +201,14 @@ async function aprendi({ guiaId, aprendiz, mensaje }: any) {
   return json({ ok: true, aprendieron: total });
 }
 
+// ---------- Voz (Mistral Voxtral) ----------
+// Devuelve MP3. Si no hay voz, 503 y el frontend usa la del navegador.
+async function voz({ texto }: any) {
+  if (!hayVoz()) return json({ error: "Voz no configurada." }, 503);
+  const audio = await sintetizar(texto);
+  return new Response(audio, { headers: { ...CORS, "Content-Type": "audio/mpeg" } });
+}
+
 // ---------- Enrutador ----------
 // deno-lint-ignore no-explicit-any
 const RUTAS: Record<string, (body: any) => Promise<Response>> = {
@@ -210,6 +219,7 @@ const RUTAS: Record<string, (body: any) => Promise<Response>> = {
   "POST /ensenar": ensenar,
   "POST /descartar": descartar,
   "POST /aprendi": aprendi,
+  "POST /voz": voz,
   "GET /guias": async () => json(await leerGuias()),
 };
 

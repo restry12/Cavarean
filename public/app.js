@@ -178,7 +178,8 @@ function trozos(texto) {
   return salida.filter(Boolean);
 }
 
-function decir(trozo) {
+// Voz del navegador (respaldo)
+function decirNavegador(trozo) {
   return new Promise(res => {
     const u = new SpeechSynthesisUtterance(trozo);
     u.lang = 'es-CL';
@@ -195,8 +196,71 @@ function decir(trozo) {
   });
 }
 
+/* Voz de Mistral Voxtral (vía /api/voz). Si falla, se usa la del navegador.
+   ?voz=navegador la desactiva; en modo simulado tampoco se usa. */
+let vozIA = new URLSearchParams(location.search).get('voz') !== 'navegador';
+let fallasVozIA = 0;
+let audioActual = null;    // { audio, fin }
+const cacheVoz = new Map(); // texto -> Promise<url del MP3>
+
+function audioIA(trozo) {
+  const clave = trozo;
+  if (!cacheVoz.has(clave)) {
+    const pedido = fetch('/api/voz', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texto: trozo }),
+      signal: AbortSignal.timeout(9000)
+    }).then(async r => {
+      if (!r.ok || !(r.headers.get('Content-Type') || '').startsWith('audio/')) throw new Error('voz ' + r.status);
+      return URL.createObjectURL(await r.blob());
+    });
+    pedido.catch(() => cacheVoz.delete(clave));
+    cacheVoz.set(clave, pedido);
+  }
+  return cacheVoz.get(clave);
+}
+
+const usarVozIA = () => vozIA && !modoMock;
+
+function reproducir(url, trozo) {
+  return new Promise((res, rej) => {
+    const audio = new Audio(url);
+    audio.playbackRate = velocidadVoz / 0.9;   // 0.9 = ritmo normal de la voz; «más lento» la baja
+    let listo = false;
+    const fin = () => { if (!listo) { listo = true; clearTimeout(vigia); if (audioActual?.audio === audio) audioActual = null; res(); } };
+    const vigia = setTimeout(fin, 4000 + trozo.length * 120 / velocidadVoz);
+    audioActual = { audio, fin };
+    audio.onended = fin;
+    audio.onerror = fin;
+    // Sin un toque previo el navegador puede bloquear el audio: se avisa para usar el respaldo
+    audio.play().catch(e => { listo = true; clearTimeout(vigia); audioActual = null; rej(e); });
+  });
+}
+
+async function decir(trozo, turno) {
+  if (usarVozIA()) {
+    try {
+      const url = await audioIA(trozo);
+      if (turno !== turnoHabla) return;
+      fallasVozIA = 0;
+      return await reproducir(url, trozo);
+    } catch (e) {
+      if (turno !== turnoHabla) return;
+      // Dos fallas seguidas: se queda con la voz del navegador en esta sesión
+      if (e?.name !== 'NotAllowedError' && ++fallasVozIA >= 2) {
+        vozIA = false;
+        console.warn('[SABERES] La voz de Mistral no respondió; uso la del navegador.', e?.message);
+      }
+    }
+  }
+  if ('speechSynthesis' in window) return decirNavegador(trozo);
+  return pausa(400 + trozo.length * 40);
+}
+
 function callar() {
   turnoHabla++;
+  if (audioActual) { audioActual.audio.pause(); audioActual.fin(); }
   if ('speechSynthesis' in window) speechSynthesis.cancel();
 }
 
@@ -205,14 +269,17 @@ function hablar(texto) {
   texto = String(texto ?? '').replace(/\s+/g, ' ').trim();
   if (!texto) return Promise.resolve();
   setEstado('hablando', texto);
-  if (!('speechSynthesis' in window)) return pausa(400 + texto.length * 40).then(() => setEstado(null));
+  if (!('speechSynthesis' in window) && !usarVozIA()) return pausa(400 + texto.length * 40).then(() => setEstado(null));
   callar();
   const turno = turnoHabla;
   return cancelable(async (resolver) => {
     await pausa(80);
-    for (const parte of trozos(texto)) {
+    const partes = trozos(texto);
+    for (let i = 0; i < partes.length; i++) {
       if (turno !== turnoHabla) return resolver();
-      await decir(parte);
+      // Pide el audio del trozo siguiente mientras suena este (sin silencios)
+      if (usarVozIA() && partes[i + 1]) audioIA(partes[i + 1]).catch(() => {});
+      await decir(partes[i], turno);
     }
     if (turno === turnoHabla) setEstado(null);
     resolver();

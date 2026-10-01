@@ -71,6 +71,7 @@ Todo se usa **hablando**, incluso el registro.
 | Backend | **Supabase Edge Function** (Deno) en `supabase/functions/api` |
 | Datos | **Supabase Postgres**: tablas `usuarios` y `guias`, con RLS (solo la función entra) |
 | IA | **Mistral Medium 3.5** (`mistral-medium-2604`), con respaldo automático en **OpenRouter** |
+| Voz | **Mistral Voxtral TTS** (`voxtral-mini-tts-2603`) con una voz chilena clonada (`/api/voz`); si falla, la del navegador |
 | Mensajería | **Zavu** (WhatsApp) y Telegram como respaldo; solo en hitos (1, 10, 50, 100…) |
 | Servidor local | `server.js` (Express): sirve la página y reenvía `/api/*` a Supabase |
 
@@ -208,6 +209,12 @@ Caravean/
 - [UC – El 32% de los adultos mayores no tiene amigos](https://www.uc.cl/academia-en-los-medios/el-32-de-los-adultos-mayores-en-chile-no-tienen-amigos/)
 - [ASIMET / Cipem – Motivos para trabajar de las personas mayores](https://www.asimet.cl/estudio-27-de-los-adultos-mayores-trabaja-porque-sus-pensiones-son-bajas/)
 - [La Tercera – Inclusión digital de las personas mayores](https://www.latercera.com/tendencias/noticia/como-incluir-a-las-personas-mayores-en-un-estado-cada-vez-mas-digitalizado-el-desafio-que-enfrenta-chile/)
+
+### Créditos de la voz
+
+La voz de SABERES se clonó con Mistral Voxtral a partir de grabaciones del
+[Crowdsourced high-quality Chilean Spanish speech data set](https://www.openslr.org/71/) (OpenSLR 71),
+© Google, Inc., licencia [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Hablante `clf_04310`.
 
 ---
 
