@@ -130,7 +130,10 @@ function setEstado(tipo, texto) {
     $('#btn-escuchar-pagina').setAttribute('aria-pressed', 'false');
     $('#btn-escuchar-joven').classList.remove('on');
   }
-  barra.hidden = lecturaCerrada || (!ultimoTexto && estado === 'reposo');
+  // Si la pantalla ya tiene su barra de micrófono, la de voz solo aparece mientras SABERES habla:
+  // así no se apilan dos barras abajo diciendo lo mismo
+  const conBarraVoz = estado !== 'hablando' && [...document.querySelectorAll('.pantalla:not([hidden]) .barra-voz')].some(visible);
+  barra.hidden = lecturaCerrada || conBarraVoz || (!ultimoTexto && estado === 'reposo');
   barra.dataset.estado = estado;
   sp.className = 'speaker ' + (estado === 'hablando' || estado === 'reposo' ? '' : estado);
   sp.innerHTML = estado === 'hablando' ? '<span class="eq"><i></i><i></i><i></i></span>'

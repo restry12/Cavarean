@@ -483,6 +483,19 @@ body[data-barra="joven"] .lectura { font-size: 20px; }
   .lectura { font-size: 22px; }
   .subtitulo { max-height: 2.9em; }
   .lectura .speaker { width: 52px; height: 52px; }
+  /* Las barras no se quedan pegadas arriba: el contenido tiene más espacio */
+  .topbar { position: static; }
+  .barra-voz-fila { min-height: 0; padding-top: 10px; padding-bottom: 10px; gap: 14px; }
+  .sb .mic.sm { width: 64px; height: 64px; }
+  /* Inicio: saludo y tarjetas más compactas */
+  #inicio > .wrap { padding-top: 14px !important; padding-bottom: 24px !important; }
+  #inicio .side > div { gap: 18px !important; }
+  #inicio-saludo { font-size: 1.7em !important; }
+  #c-logro { margin-top: 10px !important; }
+  .sb .tile-menu { padding: 20px 22px; min-height: 0; gap: 10px; }
+  .icono-caja { width: 60px; height: 60px; border-radius: 16px; }
+  .icono-caja svg { width: 34px; height: 34px; }
+  .tile-titulo { font-size: 1.2em; }
 }
 
 @media (prefers-reduced-motion: reduce) {
