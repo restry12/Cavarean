@@ -5,7 +5,8 @@
 // La IA se usa solo en /ensenar (ordenar) y /ayuda (explicar).
 // =========================================================
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { ordenarGuia, explicarPaso, responderPregunta, tipoNombre } from "./ia.js";
+import { explicarPaso, responderPregunta, tipoNombre } from "./ia.js";
+import { estructurarGuia } from "./guias.js";
 import { avisarGracias } from "./avisos.js";
 import { hayVoz, sintetizar } from "./voz.js";
 
@@ -24,10 +25,6 @@ const json = (datos: unknown, status = 200) =>
 // ---------- Utilidades ----------
 const norm = (s: unknown) => String(s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
   .replace(/[^a-z0-9ñ\s]/g, " ").replace(/\s+/g, " ").trim();
-const mayus = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
-
-// Temas delicados: se revisan siempre, aunque la IA diga "bajo"
-const DELICADO = /\b(gas|electric\w*|enchufe\w*|cable\w*|corriente|remedio\w*|medicament\w*|pastilla\w*|dosis|fiebre|escalera\w*|cloro|veneno\w*|insulina|soldar|taladro)\b/;
 
 function telefonoLimpio(t: unknown) {
   const d = String(t ?? "").replace(/[^\d+]/g, "");
@@ -39,10 +36,10 @@ function telefonoLimpio(t: unknown) {
 
 // La base usa snake_case; el frontend espera la forma de mock.js
 // deno-lint-ignore no-explicit-any
-const aGuia = ({ autor_id, relato, creado_en, ...g }: any) => ({ ...g, autorId: autor_id });
+const aGuia = ({ autor_id, relato, creado_en, telefono, ...g }: any) => ({ ...g, autorId: autor_id });
 // deno-lint-ignore no-explicit-any
 const aUsuario = ({ creado_en, ...u }: any) => u;
-const COLUMNAS_GUIA = "id,titulo,categoria,autor,autor_id,edad,comuna,foto,materiales,pasos,ayudas,consejos,advertencias,claves,riesgo,estado,aprendieron,resumen_voz";
+const COLUMNAS_GUIA = "id,titulo,categoria,autor,autor_id,edad,comuna,foto,materiales,pasos,ayudas,consejos,advertencias,claves,riesgo,estado,aprendieron,resumen_voz,media,transcripcion,origen";
 
 async function leerGuias(soloPublicadas = false) {
   let q = db.from("guias").select(COLUMNAS_GUIA).order("creado_en", { ascending: false });
@@ -162,44 +159,24 @@ async function pregunta(guia: any, duda: string) {
   }
 }
 
-// ---------- Ordenar (IA) ----------
-function guiaSinIA(relato: string, autor: string) {
-  const frases = relato.split(/(?<=[.!?;])\s+|\s+(?:después|luego|entonces)\s+/i)
-    .map((f) => f.trim()).filter((f) => f.split(" ").length >= 3);
-  const pasos = (frases.length ? frases : [relato]).slice(0, 10).map((f) => mayus(f.replace(/[.;]*$/, ".")));
-  return {
-    titulo: `Lo que sabe ${autor}`, categoria: "hogar", materiales: [], pasos, ayudas: pasos,
-    consejos: ["Hágalo con calma: la práctica hace al maestro."], advertencias: [] as string[], claves: [],
-    riesgo: "bajo", resumen_voz: `Muy bien, ${autor}. Ordené su guía en ${pasos.length} pasos.`,
-  };
-}
-
+// ---------- Ordenar (IA, en guias.js: lo comparte con WhatsApp) ----------
 async function ensenar(body: any) {
   const relato = String(body.relato ?? "").trim().slice(0, 6000);
   if (relato.split(/\s+/).length < 4) return json({ error: "El relato es muy corto." }, 400);
   const { data: u } = await db.from("usuarios").select("*").eq("id", body.usuarioId ?? "").maybeSingle();
   if (!u) return json({ error: "No encontré su cuenta." }, 404);
 
-  let g;
-  try {
-    g = await ordenarGuia(relato, u.nombre);
-  } catch (e) {
-    console.warn("[ensenar] sin IA:", (e as Error).message);
-    g = guiaSinIA(relato, u.nombre);
-  }
-  if (DELICADO.test(norm(relato + " " + g.titulo))) g.riesgo = "alto";
-  if (g.riesgo === "alto" && !g.advertencias.length) {
-    g.advertencias.push("Es un tema delicado: hágalo con cuidado y, ante cualquier duda, pida ayuda a alguien con experiencia.");
-  }
-
-  const { data, error } = await db.from("guias").insert({
-    ...g, relato,
-    autor: u.nombre, autor_id: u.id, edad: u.edad, comuna: u.comuna,
-    estado: g.riesgo === "alto" ? "en revisión" : "publicada",
-  }).select(COLUMNAS_GUIA).single();
-  if (error) throw error;
+  const g = await estructurarGuia({ texto: relato, autor: u.nombre, comuna: u.comuna });
+  const guia = await guardarGuia({ ...g, telefono: "", autor_id: u.id, edad: u.edad });
   await db.from("usuarios").update({ ensenados: (u.ensenados || 0) + 1 }).eq("id", u.id);
-  return json(aGuia(data));
+  return json(guia);
+}
+
+// deno-lint-ignore no-explicit-any
+async function guardarGuia(g: any) {
+  const { data, error } = await db.from("guias").insert(g).select(COLUMNAS_GUIA).single();
+  if (error) throw error;
+  return aGuia(data);
 }
 
 // "Corregir": la autora descarta la guía recién creada antes de publicarla
@@ -225,7 +202,7 @@ async function aprendi({ guiaId, aprendiz, mensaje }: any, req: Request) {
   const total = fila.total;
   if (!fila.sumado) return json({ ok: true, aprendieron: total });
 
-  const { data: g } = await db.from("guias").select("titulo,autor,autor_id").eq("id", guiaId).single();
+  const { data: g } = await db.from("guias").select("titulo,autor,autor_id,telefono").eq("id", guiaId).single();
   const { data: autor } = await db.from("usuarios").select("telefono").eq("id", g!.autor_id ?? "").maybeSingle();
   const nombre = String(aprendiz || "Alguien").trim().slice(0, 40);
   // El mensaje del joven va al WhatsApp de una persona mayor: sin links ni teléfonos
@@ -233,7 +210,7 @@ async function aprendi({ guiaId, aprendiz, mensaje }: any, req: Request) {
   const seguro = nota && !/https?:\/\/|www\.|\b[\w-]+\.(?:cl|com|net|org|ly)\b|(?:\d[\s.-]?){7,}/i.test(nota);
   // Se responde al tiro; el mensaje (solo en hitos) sigue saliendo en segundo plano
   const envio = avisarGracias({
-    telefono: autor?.telefono, autor: g!.autor, titulo: g!.titulo,
+    telefono: autor?.telefono || g!.telefono, autor: g!.autor, titulo: g!.titulo,
     aprendiz: nombre, aprendieron: total, nota: seguro ? nota : "",
   });
   // @ts-ignore EdgeRuntime existe en Supabase

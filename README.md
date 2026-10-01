@@ -140,6 +140,24 @@ select public.reiniciar_demo();
 
 ---
 
+## 📱 Crear un curso por WhatsApp
+
+Una persona mayor crea un curso **solo con WhatsApp**: manda el nombre del curso como texto y después un audio o video explicando. SABERES lo transcribe (Mistral Voxtral), lo ordena en pasos (el mismo `estructurarGuia` de `/api/ensenar`), lo publica y le responde con el link `URL_PUBLICA/?guia=<id>`.
+
+1. Corra el servidor: `npm start`.
+2. Abra un túnel público: `npx cloudflared tunnel --url http://localhost:3000`.
+3. En el panel de Zavu → **Webhooks** → evento `message.inbound`, pegue `https://TU-URL/webhooks/zavu`.
+4. Copie el secreto del webhook a `.env` como `ZAVU_WEBHOOK_SECRET=` y ponga `URL_PUBLICA=https://TU-URL`. Reinicie `npm start`.
+5. Desde el celular, escriba al número de Zavu el nombre del curso y luego mande un audio o video.
+
+> ⚠️ Sin `ZAVU_WEBHOOK_SECRET` el webhook acepta cualquier mensaje (modo demo). Póngalo antes de compartir la URL del túnel.
+
+- **Dónde se guarda:** con `SUPABASE_SERVICE_ROLE_KEY` en `.env`, en Supabase (tabla `guias`). Sin ella, en `data/guias.json` y el servidor local la suma a `GET /api/guias`.
+- **Archivos:** en `public/media/` (no se suben a git). Necesita `ffmpeg-static` (ya viene en `npm install`).
+- **Plan B sin WhatsApp:** en la pantalla Enseñar, «Subir un audio o video» usa `POST /api/subir-curso` (multipart: `archivo`, `titulo`, `autor`), con el mismo proceso. `?mock=1` evita Voxtral y usa una transcripción de demo.
+- **Probar sin WhatsApp:** `scripts/probar-webhook.sh` manda un texto y un audio falsos a `localhost:3000/webhooks/zavu` y espera la guía nueva. En macOS graba el audio de prueba con `say`; en otro sistema, `MEDIA_URL_PRUEBA=https://…/audio.mp3 scripts/probar-webhook.sh`.
+- La web muestra los cursos nuevos sola: Explorar y la portada revisan `/api/guias` cada 5 s y avisan «¡Nuevo curso!».
+
 ## 📁 Estructura
 
 ```

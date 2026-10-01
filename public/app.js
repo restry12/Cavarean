@@ -1028,8 +1028,52 @@ function tarjetaGuia(g, alTocar, joven = false) {
         <span class="corazon" ${joven ? 'style="font-size:16px"' : ''}>${icono('heart', joven ? 20 : 22)}${textoAprendieron(g.aprendieron)}</span>
       </span>
     </button>`);
+  b.dataset.id = g.id;
   b.addEventListener('click', alTocar);
   return b;
+}
+
+// Audio o video con la voz de quien enseña (cursos creados por WhatsApp o subidos)
+function bloqueMedia(guia) {
+  const m = guia.media;
+  if (!m || !/^(\/media\/|blob:)/.test(m.url || '')) return '';
+  const reproductor = m.tipo === 'video'
+    ? `<video controls playsinline preload="metadata" src="${esc(m.url)}"></video>`
+    : `<audio controls preload="metadata" src="${esc(m.url)}"></audio>`;
+  return `<section class="media-guia">
+      ${guia.origen === 'whatsapp' ? `<span class="insignia-wa">${icono('send', 24)}Creado por WhatsApp</span>` : ''}
+      <h2>Escuche ${esc(aQuien(nombreAutor(guia.autor) || 'quien la enseña'))} explicarlo</h2>
+      ${reproductor}
+    </section>`;
+}
+
+/* Guías nuevas sin recargar: cada 5 s se revisa /api/guias.
+   Es el momento clave de la demo: alguien crea un curso por WhatsApp y aparece solo. */
+function vigilarGuiasNuevas(g, conocidas, alLlegar) {
+  const ids = new Set(conocidas.map(x => x.id));
+  const revisar = async () => {
+    if (g !== generacion) return;
+    try {
+      const guias = modoMock ? await window.MOCK.api('GET', '/api/guias') : await (await fetch('/api/guias')).json();
+      if (g !== generacion || !Array.isArray(guias)) return;
+      const nuevas = guias.filter(x => !ids.has(x.id) && x.estado !== 'en revisión');
+      guias.forEach(x => ids.add(x.id));
+      if (nuevas.length) alLlegar(nuevas, guias.filter(x => x.estado !== 'en revisión'));
+    } catch (e) { /* sin conexión: se intenta de nuevo en 5 s */ }
+    if (g === generacion) setTimeout(revisar, 5000);
+  };
+  setTimeout(revisar, 5000);
+}
+
+// Aviso «¡Nuevo curso!» y brillo suave en la tarjeta recién llegada
+function anunciarNuevas(nuevas) {
+  nuevas.forEach(n => document.querySelectorAll(`[data-id="${CSS.escape(n.id)}"]`).forEach(t => t.classList.add('recien')));
+  const n = nuevas[0];
+  document.querySelector('.aviso-nuevo')?.remove();
+  const aviso = el(`<button type="button" class="aviso-nuevo" role="status"><span class="aviso-nuevo-tit">¡Nuevo curso!</span><span>${esc(n.titulo)} · de ${esc(n.autor)}</span></button>`);
+  aviso.addEventListener('click', () => { aviso.remove(); abrir('guia-joven', { guia: n }); });
+  $('#app').append(aviso);
+  setTimeout(() => aviso.remove(), 8000);
 }
 
 /* =========================================================
@@ -1038,10 +1082,14 @@ function tarjetaGuia(g, alTocar, joven = false) {
 async function flujoBienvenida(g) {
   const guias = (await traerGuias()).filter(x => x.estado !== 'en revisión');
   vigente(g);
-  const orden = guias.slice().sort((a, b) => esNueva(b) - esNueva(a) || (b.aprendieron || 0) - (a.aprendieron || 0));
-  const caja = $('#destacadas');
-  caja.innerHTML = '';
-  orden.slice(0, 4).forEach(guia => caja.append(tarjetaGuia(guia, () => abrir('guia-joven', { guia }))));
+  const pintar = (lista) => {
+    const orden = lista.slice().sort((a, b) => esNueva(b) - esNueva(a) || (b.aprendieron || 0) - (a.aprendieron || 0));
+    const caja = $('#destacadas');
+    caja.innerHTML = '';
+    orden.slice(0, 4).forEach(guia => caja.append(tarjetaGuia(guia, () => abrir('guia-joven', { guia }))));
+  };
+  pintar(guias);
+  vigilarGuiasNuevas(g, guias, (nuevas, todas) => { pintar(todas); anunciarNuevas(nuevas); });
 }
 
 /* =========================================================
@@ -1577,6 +1625,67 @@ async function flujoEnsenar(g) {
 }
 
 /* =========================================================
+   E1b · Subir un audio o video (plan B sin WhatsApp)
+   ========================================================= */
+function enviarArchivo(datos, alTerminarSubida) {
+  return new Promise((res, rej) => {
+    const x = new XMLHttpRequest();
+    x.open('POST', '/api/subir-curso');
+    x.upload.onload = alTerminarSubida;
+    x.onload = () => { try { res(JSON.parse(x.responseText)); } catch (e) { rej(new Error('Respuesta ' + x.status)); } };
+    x.onerror = () => rej(new Error('Sin conexión'));
+    x.send(datos);
+  });
+}
+
+function subirCurso() {
+  const input = $('#e1-archivo');
+  const archivo = input.files[0];
+  input.value = '';
+  if (!archivo || !usuario) return;
+  ejecutar(async (g) => {
+    const btn = $('#btn-subir'), estado = $('#e1-subida-estado');
+    const pintar = (t) => { btn.querySelector('span').textContent = t || 'Subir un audio o video'; estado.textContent = t; };
+    btn.classList.add('ocupado');
+    input.disabled = true;
+    try {
+      pintar('Subiendo…');
+      hablar('Estoy recibiendo su grabación. Deme un momentito.').catch(() => {});
+      let guia;
+      if (modoMock) {
+        await pausa(900);
+        pintar('Ordenando su curso…');
+        guia = await window.MOCK.api('POST', '/api/ensenar', { usuarioId: usuario.id, relato: RELATO_DEMO });
+        guia.media = { tipo: archivo.type.startsWith('video/') ? 'video' : 'audio', url: URL.createObjectURL(archivo) };
+      } else {
+        const datos = new FormData();
+        datos.append('archivo', archivo);
+        datos.append('autor', usuario.nombre || '');
+        datos.append('comuna', usuario.comuna || '');
+        datos.append('usuarioId', usuario.id || '');
+        guia = await enviarArchivo(datos, () => {
+          pintar('Ordenando su curso…');
+          hablar('Ya la recibí. Ahora estoy ordenando su curso. Tómese un tecito mientras tanto.').catch(() => {});
+        });
+      }
+      vigente(g);
+      if (!guia || guia.error || !Array.isArray(guia.pasos)) throw new Error(guia && guia.error || 'sin guía');
+      irAPantalla('guia-creada', { guia, nueva: true });
+      await flujoGuiaCreada(g, { guia, nueva: true });
+    } catch (e) {
+      if (e === CANCELADO) throw e;
+      console.warn('[SABERES] subir curso:', e.message);
+      estado.textContent = 'No pude armar su curso con ese archivo. No es su culpa. Probemos de nuevo.';
+      await hablar('Disculpe, no pude armar su curso con ese archivo. No es su culpa. Probemos de nuevo.');
+    } finally {
+      btn.classList.remove('ocupado');
+      btn.querySelector('span').textContent = 'Subir un audio o video';
+      input.disabled = false;
+    }
+  });
+}
+
+/* =========================================================
    E2 · Ordenando
    ========================================================= */
 const TAREAS_E2 = ['Escuché su explicación', 'Separando los materiales', 'Ordenando los pasos', 'Agregando sus consejos'];
@@ -1646,6 +1755,9 @@ function pintarGuiaCreada(guia) {
   $('#e3-titulo').textContent = guia.titulo;
   $('#e3-retrato').innerHTML = avatar(guia, 64);
   $('#e3-autor').innerHTML = `Creada con la voz de <strong>${esc(guia.autor)}</strong>`;
+  const media = $('#e3-media');
+  media.innerHTML = bloqueMedia(guia);
+  media.hidden = !media.innerHTML;
   const pills = [];
   if (guia.comuna) pills.push(['pin', guia.comuna, '#F6EBDA', '#2B1D14']);
   pills.push(['sprout', `Nivel: ${(guia.nivel || 'Principiante').toLowerCase()}`, '#E6EEDC', '#2F451A']);
@@ -1920,6 +2032,12 @@ async function flujoJovenes(g) {
   vigente(g);
   pintarFiltrosJovenes();
   pintarListaJovenes();
+  vigilarGuiasNuevas(g, guiasJovenes, (nuevas, todas) => {
+    guiasJovenes = todas;
+    pintarFiltrosJovenes();
+    pintarListaJovenes();
+    anunciarNuevas(nuevas);
+  });
 }
 
 /* =========================================================
@@ -1979,6 +2097,7 @@ async function flujoGuiaJoven(g, { guia }) {
     });
     pintarAvanceJoven(pasos.length, 0);
   }
+  cuerpo.insertAdjacentHTML('afterbegin', bloqueMedia(guia));
   $('#j2-gracias').addEventListener('click', () => abrir('gracias-joven', { guia }));
 
   // Ficha de la autora o autor, con la guía leída en voz alta
@@ -2333,13 +2452,20 @@ function init() {
   $('#j-buscar').addEventListener('submit', (e) => { e.preventDefault(); pintarListaJovenes(); });
   $('#buscador').addEventListener('input', pintarListaJovenes);
   $('#demo-fab').addEventListener('click', alternarDemo);
+  $('#e1-archivo').addEventListener('change', subirCurso);
   $('#demo-cerrar').addEventListener('click', () => { $('#demo').hidden = true; });
   $('#demo').addEventListener('click', (e) => { if (e.target.id === 'demo') $('#demo').hidden = true; });
   document.addEventListener('keydown', teclado);
 
   pantallaActual = { id: 'bienvenida', args: {} };
   irA('bienvenida');
-  ejecutar(flujoBienvenida);
+  // /?guia=<id> (el link que llega por WhatsApp) abre esa guía directo
+  const idGuia = new URLSearchParams(location.search).get('guia');
+  if (!idGuia) return ejecutar(flujoBienvenida);
+  traerGuias().then(guias => {
+    const guia = guias.find(x => x.id === idGuia);
+    guia ? abrir('guia-joven', { guia }) : ejecutar(flujoBienvenida);
+  });
 }
 
 init();

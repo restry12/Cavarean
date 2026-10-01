@@ -5,6 +5,10 @@
    ========================================================= */
 'use strict';
 const ICONOS = {
+"upload": {
+"f": "none",
+"d": "<path d=\"M12 15V3M7 8l5-5 5 5\"></path><path d=\"M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4\"></path>"
+},
 "mic": {
 "f": "none",
 "d": "<rect x=\"9\" y=\"2.5\" width=\"6\" height=\"12\" rx=\"3\"></rect><path d=\"M5.5 10.5a6.5 6.5 0 0 0 13 0M12 17v4M8.5 21h7\"></path>"

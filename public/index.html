@@ -409,6 +409,13 @@
         <button type="button" class="btn btn-p" id="btn-terminar" disabled><i data-icono="check" data-s="28"></i>Terminé</button>
         <button type="button" class="btn btn-s" id="btn-pausa"><i data-icono="mic" data-s="26"></i><span>Empezar a grabar</span></button>
       </div>
+      <!-- Plan B: subir un audio o video ya grabado (por ejemplo, desde WhatsApp) -->
+      <div class="subir-curso">
+        <p style="font-weight: 700">¿Ya lo tiene grabado?</p>
+        <label class="btn btn-s" id="btn-subir" for="e1-archivo"><i data-icono="upload" data-s="28"></i><span>Subir un audio o video</span></label>
+        <input type="file" id="e1-archivo" accept="audio/*,video/*" class="sr-only">
+        <p id="e1-subida-estado" class="subida-estado" role="status" aria-live="polite"></p>
+      </div>
     </section>
 
     <!-- ═════════ E2 · ORDENANDO ═════════ -->
@@ -433,6 +440,7 @@
               <div class="row" id="e3-pills" style="gap: 10px; font-size: .9em"></div>
             </div>
           </header>
+          <div id="e3-media" style="padding: 32px 40px 0" hidden></div>
           <div class="e3-cuerpo">
             <section aria-labelledby="mat">
               <h2 id="mat" style="font-size: 1.4em">Materiales</h2>
