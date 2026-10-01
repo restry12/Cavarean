@@ -5,143 +5,660 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SABERES · Aprenda, enseñe y deje su huella</title>
   <meta name="description" content="Enciclopedia por voz para personas de 50+: aprenda paso a paso, enseñe lo que sabe y deje su huella.">
+  <meta name="theme-color" content="#A9461F">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="estilos.css">
 </head>
-<body class="vista-mayores">
+<body data-barra="landing">
+<div class="sb" id="app">
 
-  <!-- Barra superior fija: selector de vista -->
-  <header class="barra">
-    <div class="marca" aria-hidden="true">SABERES</div>
-    <div class="selector-vista" role="group" aria-label="Elegir vista">
-      <button type="button" id="vista-mayores" class="vista-btn" aria-pressed="true">👵 Vista personas mayores</button>
-      <button type="button" id="vista-jovenes" class="vista-btn" aria-pressed="false">🧑 Vista jóvenes</button>
+  <!-- ═════════ BARRA SUPERIOR · PERSONAS MAYORES ═════════ -->
+  <header class="topbar" id="barra-mayor">
+    <div class="topbar-util">
+      <div class="wrap util-fila">
+        <p class="hide-t solo-landing" style="font-weight: 700">Hecho en Chile para personas de 50 años y más</p>
+        <div class="solo-app util-usuario"><span id="barra-avatar"></span><p id="barra-hola" style="font-weight: 700">Hola</p></div>
+        <div class="flex1"></div>
+        <span id="fs-label" class="hide-t" style="font-weight: 700">Tamaño de letra</span>
+        <div class="fsbox" role="group" aria-labelledby="fs-label">
+          <button type="button" class="fsbtn on" data-fs="0" aria-pressed="true" aria-label="Letra normal" style="font-size: 18px">A</button>
+          <button type="button" class="fsbtn" data-fs="1" aria-pressed="false" aria-label="Letra grande" style="font-size: 22px">A+</button>
+          <button type="button" class="fsbtn" data-fs="2" aria-pressed="false" aria-label="Letra muy grande" style="font-size: 26px">A++</button>
+        </div>
+        <button type="button" class="listen" id="btn-escuchar-pagina" aria-pressed="false"><i data-icono="speaker" data-s="26"></i><span>Escuchar esta página</span></button>
+      </div>
     </div>
-    <button type="button" id="btn-casa" class="btn-casa" hidden>🏠 Volver al inicio</button>
-    <span id="aviso-mock" class="aviso-mock" hidden>Modo simulado</span>
+    <div class="wrap barra-principal">
+      <button type="button" class="marca" id="btn-marca" aria-label="SABERES, ir al inicio"><i data-logo></i><span class="marca-nombre">SABERES</span></button>
+      <nav class="solo-app nav-app" aria-label="Principal">
+        <button type="button" class="navlink" data-ir="inicio" data-seccion="inicio"><i data-icono="home" data-s="28"></i><span>Inicio</span></button>
+        <button type="button" class="navlink" data-ir="aprender" data-seccion="aprender"><i data-icono="book" data-s="28"></i><span>Aprender</span></button>
+        <button type="button" class="navlink" data-ir="ensenar" data-seccion="ensenar"><i data-icono="board" data-s="28"></i><span>Enseñar</span></button>
+        <button type="button" class="navlink" data-ir="mi-historia" data-seccion="mi-historia"><i data-icono="sprout" data-s="28"></i><span>Mi historia</span></button>
+      </nav>
+      <nav class="solo-landing hide-t nav-landing" aria-label="Principal">
+        <a class="navlink" href="#como">Cómo funciona</a>
+        <button type="button" class="navlink" data-ir="jovenes">Para jóvenes</button>
+        <button type="button" class="navlink" data-accion="entrar">Entrar</button>
+      </nav>
+      <div class="flex1 solo-landing"></div>
+      <button type="button" class="btn btn-p btn-md solo-landing" data-accion="registro">Quiero empezar</button>
+      <span id="aviso-mock" class="pill aviso-mock" hidden>Modo simulado</span>
+    </div>
   </header>
+
+  <!-- ═════════ BARRA SUPERIOR · JÓVENES ═════════ -->
+  <header class="topbar topbar-joven" id="barra-joven">
+    <div class="wrap barra-principal" style="min-height: 76px; gap: 14px">
+      <button type="button" class="marca" data-ir="jovenes" aria-label="SABERES para jóvenes, explorar guías"><i data-logo data-s="38"></i><span class="marca-nombre" style="font-size: 22px">SABERES</span><span class="pill" style="background: #E6EEDC; color: #3F5A24; font-size: 14px">para jóvenes</span></button>
+      <nav aria-label="Jóvenes" class="nav-joven">
+        <button type="button" class="navlink" data-ir="jovenes" data-seccion-joven="explorar" style="min-height: 48px">Explorar guías</button>
+        <button type="button" class="navlink" data-ir="experiencia" data-seccion-joven="experiencia" style="min-height: 48px">Por experiencia</button>
+      </nav>
+      <div class="flex1"></div>
+      <button type="button" class="btn btn-ghost btn-sm hide-t" id="btn-soy-mayor">Soy persona mayor</button>
+      <div class="joven-usuario" id="joven-usuario" hidden><span id="joven-avatar"></span><span id="joven-nombre" style="font-weight: 700"></span></div>
+    </div>
+  </header>
+
+  <!-- Botón Volver -->
+  <div id="fila-volver" class="wrap fila-volver" hidden>
+    <button type="button" class="back" id="btn-volver"><i data-icono="back" data-s="28"></i><span>Volver</span></button>
+  </div>
 
   <main id="principal">
 
-    <!-- 1. Bienvenida -->
-    <section id="bienvenida" class="pantalla">
-      <div class="logo" aria-hidden="true">📚</div>
-      <h1 class="titulo-logo" tabindex="-1">SABERES</h1>
-      <p class="lema">Aprenda, enseñe y deje su huella</p>
-      <button type="button" id="btn-empezar" class="btn btn-principal btn-gigante">Empezar</button>
-      <button type="button" id="btn-tengo-cuenta" class="btn btn-secundario">Ya tengo cuenta</button>
-      <p class="nota">La aplicación le va a hablar y a escuchar. Suba el volumen y, si su computador lo pide, permita usar el micrófono.</p>
-    </section>
-
-    <!-- 2. Registro (y entrar) por voz -->
-    <section id="registro" class="pantalla" hidden>
-      <p id="registro-progreso" class="progreso-texto"></p>
-      <h2 id="registro-pregunta" class="pregunta-grande" tabindex="-1"></h2>
-      <p id="registro-respuesta" class="respuesta-dicha" hidden></p>
-      <div id="registro-perfil" class="tarjeta-perfil" hidden></div>
-    </section>
-
-    <!-- 3. Inicio -->
-    <section id="inicio" class="pantalla" hidden>
-      <h2 id="inicio-saludo" class="saludo" tabindex="-1">Hola</h2>
-      <p class="indicacion">¿Qué quiere hacer hoy? Toque un botón o dígalo en voz alta.</p>
-      <div class="menu-grande">
-        <button type="button" class="btn btn-menu btn-principal" data-ir="aprender">
-          <span class="icono" aria-hidden="true">🎓</span><span>Aprender</span>
-        </button>
-        <button type="button" class="btn btn-menu btn-azul" data-ir="ensenar">
-          <span class="icono" aria-hidden="true">🎙️</span><span>Quiero enseñar</span>
-        </button>
-        <button type="button" class="btn btn-menu btn-secundario" data-ir="mis-guias">
-          <span class="icono" aria-hidden="true">⭐</span><span>Mis guías</span>
-        </button>
+    <!-- ═════════ A · PORTADA ═════════ -->
+    <section id="bienvenida" class="pantalla fade">
+      <div class="wrap two" style="padding-top: 64px; padding-bottom: 72px; align-items: center">
+        <div style="display: flex; flex-direction: column; gap: 28px">
+          <p class="pill" style="background: #E6EEDC; color: #3F5A24; align-self: flex-start"><i data-icono="mic" data-s="22"></i>Funciona con su voz. También puede escribir.</p>
+          <h1 tabindex="-1" style="font-size: 2.3em; line-height: 1.08; letter-spacing: -.01em">Lo que usted sabe vale. <span style="color: #8E3717">Lo que soñó, todavía se puede.</span></h1>
+          <p style="font-size: 1.15em; max-width: 560px">Aprenda paso a paso, enseñe hablando y deje su huella en otros.</p>
+          <div class="row" style="margin-top: 8px">
+            <button type="button" class="btn btn-p" id="btn-empezar" data-accion="registro">Quiero empezar<i data-icono="next" data-s="28"></i></button>
+            <button type="button" class="btn btn-s" data-ir="jovenes">Soy joven, quiero aprender</button>
+          </div>
+        </div>
+        <div style="max-width: 560px; justify-self: center; width: 100%" data-ilustracion="amasar"></div>
       </div>
+
+      <section class="wrap" style="padding-bottom: 88px" aria-labelledby="tres">
+        <h2 id="tres" style="font-size: 1.6em; margin-bottom: 28px">Tres maneras de estar en SABERES</h2>
+        <div class="g3">
+          <article class="card" style="padding: 36px; display: flex; flex-direction: column; gap: 16px">
+            <span class="icono-caja" style="background: #E6EEDC; color: #3F5A24"><i data-icono="book" data-s="48"></i></span>
+            <h3 style="font-size: 1.35em">Aprendo</h3>
+            <p>Una guía paciente le enseña lo que quiera, paso a paso y a su ritmo. Si no entiende, se lo explica de otra forma.</p>
+          </article>
+          <article class="card" style="padding: 36px; display: flex; flex-direction: column; gap: 16px">
+            <span class="icono-caja" style="background: #F8E0CC; color: #8E3717"><i data-icono="board" data-s="48"></i></span>
+            <h3 style="font-size: 1.35em">Enseño</h3>
+            <p>Cuente lo que sabe hablando, como si se lo contara a un nieto. Lo ordenamos en una guía con su nombre.</p>
+          </article>
+          <article class="card" style="padding: 36px; display: flex; flex-direction: column; gap: 16px">
+            <span class="icono-caja" style="background: #FBEACB; color: #6B4A0E"><i data-icono="sprout" data-s="48"></i></span>
+            <h3 style="font-size: 1.35em">Mi historia</h3>
+            <p>Retome el sueño que la vida dejó pendiente y convierta su experiencia en lecciones para jóvenes que hoy viven lo mismo.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="como" style="background: #FFFFFF; border-top: 2px solid #EFDCC2; border-bottom: 2px solid #EFDCC2; padding: 88px 0">
+        <div class="wrap">
+          <h2 style="font-size: 1.6em">Cómo funciona</h2>
+          <p style="margin-top: 8px">No necesita saber de computación.</p>
+          <ol class="g3" style="margin-top: 40px">
+            <li class="paso-como"><span aria-hidden="true" style="color: #C4552D">1</span><h3>Hable</h3><p>Diga lo que quiere hacer, con sus palabras. Si prefiere, escríbalo.</p></li>
+            <li class="paso-como"><span aria-hidden="true" style="color: #5B7B3A">2</span><h3>Aprenda o enseñe</h3><p>Siga los pasos a su ritmo o grabe lo que sabe. Nosotros lo ordenamos.</p></li>
+            <li class="paso-como"><span aria-hidden="true" style="color: #A86F00">3</span><h3>Reciba el gracias por WhatsApp</h3><p>Cuando alguien aprenda de usted, le llega un mensaje con su nombre.</p></li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="dark" style="background: #A9461F; color: #FFFFFF; padding: 88px 0">
+        <div class="wrap g2" style="gap: 56px">
+          <figure class="dato">
+            <p class="dato-num">46%</p>
+            <blockquote>de las personas mayores siente que a su vida le falta propósito.</blockquote>
+            <figcaption>CenterWell / MIT AgeLab, 2025</figcaption>
+          </figure>
+          <figure class="dato">
+            <p class="dato-num">2×</p>
+            <blockquote>Los arrepentimientos por lo que no hicimos duplican a los demás.</blockquote>
+            <figcaption>World Regret Survey, 2022</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="wrap" style="padding-top: 96px; padding-bottom: 96px">
+        <figure class="card testimonio">
+          <i data-retrato="rosa" data-s="240"></i>
+          <div style="display: flex; flex-direction: column; gap: 20px">
+            <span class="pill" style="background: #FFF1D6; color: #6B4A0E; border: 2px solid #E3B866; align-self: flex-start">Testimonio de ejemplo</span>
+            <blockquote style="font-size: 1.75em; font-weight: 700; line-height: 1.25">«Nunca pude ser profesora. Hoy 40 jóvenes aprendieron mi pan amasado.»</blockquote>
+            <figcaption>Rosa, 72 años, Puente Alto</figcaption>
+          </div>
+        </figure>
+      </section>
+
+      <section class="wrap" style="padding-bottom: 96px">
+        <div class="titulo-con-accion">
+          <h2 style="font-size: 1.6em">Guías destacadas</h2>
+          <button type="button" class="btn btn-ghost" data-ir="jovenes">Ver todas las guías</button>
+        </div>
+        <div class="g4" id="destacadas"></div>
+      </section>
+
+      <section class="wrap" style="padding-bottom: 96px">
+        <div class="dark banda-jovenes">
+          <div style="display: flex; flex-direction: column; gap: 16px">
+            <p style="font-weight: 700; font-size: .85em; letter-spacing: .04em">PARA JÓVENES</p>
+            <h2 style="font-size: 1.8em; line-height: 1.15">Aprende de quien ya lo vivió.</h2>
+            <p style="max-width: 640px">Guías de oficios, cocina y vida contadas por personas mayores de todo Chile. Cuando aprendas, dales las gracias.</p>
+            <div style="margin-top: 8px"><button type="button" class="btn btn-w" data-ir="jovenes">Explorar guías</button></div>
+          </div>
+          <div class="hide-t" style="display: flex">
+            <i data-retrato="tomas" data-s="150"></i>
+            <span style="margin-left: -36px; margin-top: 60px; display: inline-flex"><i data-retrato="carmen" data-s="130"></i></span>
+          </div>
+        </div>
+      </section>
+
+      <footer class="dark" style="background: #2B1D14; color: #FFF8EE; padding: 64px 0 80px">
+        <div class="wrap g3" style="gap: 40px; font-size: .85em">
+          <div style="display: flex; flex-direction: column; gap: 12px">
+            <p style="font-size: 1.5em; font-weight: 700; letter-spacing: .06em">SABERES</p>
+            <p>Aprenda, enseñe y deje su huella.</p>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 14px; align-items: flex-start">
+            <p style="font-weight: 700">¿Ya tiene cuenta?</p>
+            <button type="button" class="btn btn-w btn-md" id="btn-tengo-cuenta" data-accion="entrar">Entrar con mi voz</button>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 10px">
+            <p style="font-weight: 700">Accesibilidad</p>
+            <p>Navegación completa con teclado, letra ajustable, y voz y texto siempre juntos.</p>
+            <p style="margin-top: 8px">Hack4Seniors UDD 2026</p>
+          </div>
+        </div>
+      </footer>
     </section>
 
-    <!-- 4. Aprender -->
-    <section id="aprender" class="pantalla" hidden>
-      <h2 class="titulo-pantalla" tabindex="-1">Aprender</h2>
-      <button type="button" id="btn-decir-tema" class="btn btn-principal btn-gigante">🎤 Dígame qué quiere aprender</button>
-      <h3 class="subtitulo-seccion">O elija una guía</h3>
-      <div id="lista-aprender" class="lista-tarjetas"></div>
+    <!-- ═════════ ENTRAR CON LA VOZ ═════════ -->
+    <section id="entrar" class="pantalla focus fade pantalla-col" hidden>
+      <h1 tabindex="-1" style="font-size: 2em; line-height: 1.1">Entrar a SABERES</h1>
+      <div class="dice">
+        <span class="speaker" aria-hidden="true"><i data-icono="speaker" data-s="32"></i></span>
+        <div class="bubble" role="status"><p class="bubble-titulo">SABERES le dice</p><p id="entrar-dice" style="font-size: 1.15em; margin-top: 6px">Qué gusto tenerle de vuelta. Dígame su nombre y su palabra clave.</p></div>
+      </div>
+      <div data-zona-voz></div>
     </section>
 
-    <!-- 5. Guía paso a paso (compartida con jóvenes) -->
-    <section id="guia" class="pantalla" hidden>
-      <div class="guia-cabecera">
-        <span id="guia-avatar"></span>
+    <!-- ═════════ B · REGISTRO POR VOZ ═════════ -->
+    <section id="registro" class="pantalla focus fade pantalla-col" hidden>
+      <div>
+        <p id="reg-num" style="font-weight: 700; color: #8E3717">Pregunta 1 de 6</p>
+        <div class="puntos" id="reg-puntos" aria-hidden="true"></div>
+      </div>
+      <div class="dice">
+        <span class="speaker" aria-hidden="true"><i data-icono="speaker" data-s="32"></i></span>
+        <div class="bubble" role="status">
+          <p class="bubble-titulo">SABERES le pregunta</p>
+          <h1 id="reg-pregunta" tabindex="-1" style="font-size: 1.9em; line-height: 1.12; margin-top: 6px">¿Cómo se llama?</h1>
+          <p id="reg-ayuda" style="margin-top: 10px"></p>
+        </div>
+      </div>
+      <div data-zona-voz></div>
+    </section>
+
+    <!-- ═════════ B2 · SU PERFIL ═════════ -->
+    <section id="perfil" class="pantalla wrap fade pantalla-col" style="max-width: 1040px" hidden>
+      <div class="dice">
+        <span class="speaker" aria-hidden="true"><i data-icono="speaker" data-s="32"></i></span>
+        <div class="bubble" role="status"><p class="bubble-titulo">SABERES le dice</p><p style="font-size: 1.15em; margin-top: 6px">Así quedó su perfil. ¿Está todo bien?</p></div>
+      </div>
+      <section class="card perfil-card" aria-labelledby="perfil-nombre">
+        <span id="perfil-retrato"></span>
         <div>
-          <p id="guia-autor" class="guia-autor"></p>
-          <p id="guia-comuna" class="guia-comuna"></p>
+          <p style="font-size: .85em; font-weight: 700; color: #8E3717">Su perfil</p>
+          <h1 id="perfil-nombre" tabindex="-1" style="font-size: 2.1em; line-height: 1.1"></h1>
+          <p class="con-icono" style="margin-top: 8px"><i data-icono="pin" data-s="28"></i><span id="perfil-comuna"></span></p>
+          <dl class="g3" style="margin-top: 32px; gap: 16px">
+            <div class="dato-perfil" style="background: #FFF8EE"><dt><i data-icono="scissors" data-s="24"></i>Se dedicó a</dt><dd id="perfil-oficio"></dd></div>
+            <div class="dato-perfil" style="background: #FBEACB"><dt><i data-icono="cap" data-s="24"></i>Su sueño</dt><dd id="perfil-sueno"></dd></div>
+            <div class="dato-perfil" style="background: #E6EEDC"><dt><i data-icono="bread" data-s="24"></i>Puede enseñar</dt><dd id="perfil-ensena"></dd></div>
+          </dl>
+        </div>
+      </section>
+      <div class="controles" data-controles></div>
+    </section>
+
+    <!-- ═════════ TRANSICIÓN EMOTIVA ═════════ -->
+    <section id="transicion" class="pantalla dark fade-slow transicion" hidden>
+      <div class="confetti" aria-hidden="true"></div>
+      <div class="wrap" style="padding-top: 28px"><button type="button" class="back back-dark" data-volver><i data-icono="back" data-s="28"></i><span>Volver</span></button></div>
+      <div class="wrap two" style="flex-grow: 1; align-items: center; padding-top: 32px; padding-bottom: 72px">
+        <div style="display: flex; flex-direction: column; gap: 24px">
+          <p style="display: inline-flex; align-items: center; gap: 12px; font-weight: 700"><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>SABERES le dice</p>
+          <h1 id="bt-titulo" tabindex="-1" style="font-size: 2.6em; line-height: 1.06"></h1>
+          <p style="font-size: 1.35em">Aquí puede enseñar desde hoy.</p>
+          <div class="controles" data-controles style="margin-top: 20px"></div>
+        </div>
+        <div class="bt-ilus" id="bt-ilus"></div>
+      </div>
+    </section>
+
+    <!-- ═════════ C · INICIO ═════════ -->
+    <section id="inicio" class="pantalla fade" hidden>
+      <div class="wrap" style="padding-top: 28px; padding-bottom: 48px">
+        <div class="side">
+          <div style="display: flex; flex-direction: column; gap: 32px">
+            <div>
+              <p id="c-fecha" style="font-weight: 700; color: #8E3717"></p>
+              <h1 id="inicio-saludo" tabindex="-1" style="font-size: 2.3em; line-height: 1.08; margin-top: 4px">Hola</h1>
+              <p id="c-logro" class="pill-oro" style="margin-top: 20px" hidden><i data-icono="award" data-s="32"></i><span></span></p>
+            </div>
+            <div class="g2">
+              <button type="button" class="tile tile-menu" data-ir="aprender">
+                <span class="icono-caja" style="background: #E6EEDC; color: #3F5A24"><i data-icono="book" data-s="50"></i></span>
+                <span class="tile-titulo">Quiero aprender</span>
+                <span style="font-size: .9em">Le enseño lo que quiera, paso a paso.</span>
+              </button>
+              <button type="button" class="tile tile-menu" data-ir="ensenar">
+                <span class="icono-caja" style="background: #F8E0CC; color: #8E3717"><i data-icono="board" data-s="50"></i></span>
+                <span class="tile-titulo">Quiero enseñar</span>
+                <span style="font-size: .9em">Cuénteme lo que sabe y armamos su guía.</span>
+              </button>
+              <button type="button" class="tile tile-menu" data-ir="mi-historia">
+                <span class="icono-caja" style="background: #FBEACB; color: #6B4A0E"><i data-icono="sprout" data-s="50"></i></span>
+                <span class="tile-titulo">Mi sueño pendiente</span>
+                <span style="font-size: .9em" id="c-sueno-sub">Su camino para cumplirlo.</span>
+              </button>
+              <button type="button" class="tile tile-menu" data-ir="mis-guias">
+                <span class="icono-caja" style="background: #F6D9C4; color: #8E3717"><i data-icono="heart" data-s="50"></i></span>
+                <span class="tile-titulo">Mis guías y gracias</span>
+                <span style="font-size: .9em">Quiénes aprendieron de usted.</span>
+              </button>
+            </div>
+          </div>
+          <aside style="display: flex; flex-direction: column; gap: 24px; font-size: .9em">
+            <section class="card" style="padding: 28px" aria-labelledby="ult-g" id="c-gracias-card">
+              <h2 id="ult-g" class="con-icono" style="font-size: 1.2em"><i data-icono="heart" data-s="28"></i>Últimos gracias</h2>
+              <ul id="c-gracias" style="display: flex; flex-direction: column; gap: 20px; margin-top: 20px"></ul>
+              <button type="button" class="btn btn-ghost" data-ir="mis-guias" style="margin-top: 12px; padding-left: 0">Ver todos mis gracias</button>
+            </section>
+            <section class="card" style="padding: 28px" aria-labelledby="sueno-c">
+              <h2 id="sueno-c" class="con-icono" style="font-size: 1.2em"><i data-icono="sprout" data-s="28"></i><span id="c-sueno-titulo">Su sueño</span></h2>
+              <p id="c-sueno-pasos" style="margin-top: 12px; font-weight: 700"></p>
+              <div class="barra-suave" style="margin-top: 10px" role="img" id="c-sueno-barra-caja"><div id="c-sueno-barra" class="barra-verde"></div></div>
+              <p id="c-sueno-sig" style="margin-top: 12px"></p>
+              <button type="button" class="btn btn-s btn-md btn-full" data-ir="mi-historia" style="margin-top: 18px">Ver mi camino</button>
+            </section>
+          </aside>
         </div>
       </div>
-      <h2 id="guia-titulo" class="guia-titulo" tabindex="-1"></h2>
-      <div class="progreso">
-        <p id="guia-progreso-texto" class="progreso-texto"></p>
-        <div id="guia-barra" class="barra-progreso" role="progressbar" aria-label="Avance de la guía" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-          <div id="guia-barra-relleno" class="barra-relleno"></div>
+      <div class="barra-voz">
+        <div class="wrap barra-voz-fila">
+          <button type="button" class="mic sm idle" id="c-mic" aria-label="Hablar. Toque el micrófono o presione la barra espaciadora"><span class="ring"></span><span class="ring r2"></span><span class="ring r3"></span><span class="mic-ico"></span></button>
+          <div style="flex-grow: 1" role="status" id="c-voz-texto">
+            <p id="c-voz-linea" style="font-weight: 700; font-size: 1.1em">O dígame qué quiere hacer</p>
+            <p style="font-size: .85em">Por ejemplo: «quiero aprender a hacer una videollamada» o «quiero enseñar».</p>
+          </div>
+          <form id="c-escribir" class="c-escribir" hidden>
+            <label for="c-in" class="sr-only">Escriba qué quiere hacer</label>
+            <input id="c-in" class="field" type="text" placeholder="Escriba qué quiere hacer" autocomplete="off">
+            <button type="submit" class="btn btn-p btn-md">Listo</button>
+          </form>
+          <button type="button" class="btn btn-ghost" id="c-alternar"><i data-icono="keyboard" data-s="26"></i><span>Prefiero escribir</span></button>
         </div>
       </div>
-      <div id="guia-paso" class="paso-grande" aria-live="polite"></div>
-      <div id="guia-ayuda" class="ayuda-ia" hidden></div>
     </section>
 
-    <!-- 6. Enseñar -->
-    <section id="ensenar" class="pantalla" hidden>
-      <h2 class="titulo-pantalla" tabindex="-1">Quiero enseñar</h2>
-      <div id="ensenar-grabacion" class="ensenar-grabacion">
-        <p class="indicacion">Cuénteme lo que quiere enseñar, como si se lo explicara a un nieto. Diga qué se necesita y cómo se hace, paso por paso.</p>
-        <button type="button" id="btn-terminar" class="btn btn-grabar" disabled>Escuche las instrucciones…</button>
-        <p id="ensenar-aviso-mic" class="aviso" hidden>El micrófono no está disponible. Escriba aquí lo que quiere enseñar y toque «Terminé».</p>
-        <label for="transcripcion" class="etiqueta">Lo que voy escuchando:</label>
-        <textarea id="transcripcion" class="transcripcion" rows="5" readonly></textarea>
+    <!-- ═════════ D1 · ¿QUÉ QUIERE APRENDER? ═════════ -->
+    <section id="aprender" class="pantalla wrap fade" hidden>
+      <div class="two" style="padding-top: 28px; padding-bottom: 72px">
+        <div style="display: flex; flex-direction: column; gap: 28px">
+          <h1 tabindex="-1" style="font-size: 2.3em; line-height: 1.08">¿Qué quiere aprender hoy?</h1>
+          <div class="dice">
+            <span class="speaker" aria-hidden="true"><i data-icono="speaker" data-s="32"></i></span>
+            <div class="bubble" role="status"><p class="bubble-titulo">SABERES le dice</p><p id="d1-dice" style="margin-top: 6px">Dígamelo con sus palabras. Por ejemplo: «quiero ver a mis nietos por el celular».</p></div>
+          </div>
+          <div data-zona-voz></div>
+        </div>
+        <aside class="card" style="padding: 32px" aria-labelledby="sug">
+          <h2 id="sug" style="font-size: 1.2em">Lo que más están aprendiendo</h2>
+          <div class="g2" id="sugerencias" style="margin-top: 22px; gap: 16px"></div>
+        </aside>
       </div>
-      <div id="ensenar-resultado" hidden></div>
     </section>
 
-    <!-- 7. Mis guías -->
-    <section id="mis-guias" class="pantalla" hidden>
-      <h2 class="titulo-pantalla" tabindex="-1">Mis guías</h2>
-      <div class="contador">
-        <span id="contador-numero" class="contador-numero">0</span>
-        <span id="contador-texto" class="contador-texto">personas aprendieron con usted</span>
+    <!-- ═════════ D2 · GUÍA PASO A PASO ═════════ -->
+    <section id="guia" class="pantalla wrap fade" hidden>
+      <div style="padding-top: 24px; padding-bottom: 72px">
+        <div class="titulo-con-accion">
+          <div><p style="font-weight: 700; color: #3F5A24">Aprendiendo</p><h1 id="g-titulo" tabindex="-1" style="font-size: 1.8em; line-height: 1.1"></h1></div>
+          <p id="g-num" style="font-weight: 700; font-size: 1.1em"></p>
+        </div>
+        <div class="puntos puntos-g" id="g-puntos" role="img"></div>
+        <div class="two" style="margin-top: 32px">
+          <div style="display: flex; flex-direction: column; gap: 26px">
+            <section class="card paso-card" aria-live="polite" id="g-paso"></section>
+            <div class="dice">
+              <span class="speaker" aria-hidden="true"><i data-icono="speaker" data-s="32"></i></span>
+              <div class="bubble" role="status" id="g-burbuja"><p class="bubble-titulo" id="g-burbuja-titulo">SABERES le dice</p><p id="g-burbuja-texto" style="margin-top: 6px"></p></div>
+            </div>
+            <div class="controles" data-controles></div>
+            <p class="pill-voz"><span class="pill-voz-ico"><i data-icono="mic" data-s="22"></i></span>Puede decir: «listo», «más lento», «repita», «no entendí»</p>
+          </div>
+          <aside id="g-aside" class="g-aside"></aside>
+        </div>
       </div>
-      <div id="lista-mis-guias" class="lista-tarjetas"></div>
     </section>
 
-    <!-- Vista jóvenes -->
-    <section id="jovenes" class="pantalla" hidden>
-      <div class="jovenes-cabecera">
-        <h2 tabindex="-1">Aprenda de quienes saben</h2>
-        <p>Guías contadas por personas mayores de todo Chile. Sígalas paso a paso y, al terminar, deles las gracias: les llega un WhatsApp.</p>
+    <!-- ═════════ D3 · ¡LO LOGRÓ! ═════════ -->
+    <section id="logro" class="pantalla fade" hidden style="position: relative; overflow: hidden; min-height: 760px">
+      <div class="confetti" aria-hidden="true"></div>
+      <div class="focus logro-caja">
+        <span class="medalla"><i data-icono="award" data-s="92" data-g="1.8"></i></span>
+        <h1 tabindex="-1" style="font-size: 2.7em; line-height: 1.05">¡Lo logró!</h1>
+        <div class="dice" style="text-align: left">
+          <span class="speaker" aria-hidden="true"><i data-icono="speaker" data-s="32"></i></span>
+          <div class="bubble" role="status"><p class="bubble-titulo">SABERES le dice</p><p id="d3-texto" style="font-size: 1.1em; margin-top: 6px"></p></div>
+        </div>
+        <div class="controles" data-controles style="justify-items: center; margin-top: 8px"></div>
       </div>
-      <div class="jovenes-herramientas">
-        <label class="campo">
-          <span>Su nombre (para dar las gracias)</span>
-          <input id="nombre-joven" type="text" autocomplete="given-name" placeholder="Ej: Tomás">
-        </label>
-        <label class="campo">
-          <span>Buscar una guía</span>
-          <input id="buscador" type="search" placeholder="Pan, tomates, WhatsApp…">
-        </label>
-      </div>
-      <div id="filtros" class="filtros" role="group" aria-label="Filtrar por categoría"></div>
-      <div id="lista-jovenes" class="grilla-jovenes"></div>
     </section>
 
-    <!-- Botones de respuesta (Listo, Sí/No, campo de texto…). Los dibuja app.js -->
-    <div id="controles" class="controles"></div>
+    <!-- ═════════ E1 · ENSEÑAR (GRABAR) ═════════ -->
+    <section id="ensenar" class="pantalla focus fade pantalla-col" style="max-width: 860px" hidden>
+      <p id="e1-tema" style="font-weight: 700; color: #8E3717">Enseñar</p>
+      <div class="dice">
+        <span class="speaker" aria-hidden="true"><i data-icono="speaker" data-s="32"></i></span>
+        <div class="bubble" role="status">
+          <h1 tabindex="-1" style="font-size: 1.65em; line-height: 1.15">Cuénteme cómo lo hace, como si se lo explicara a un nieto.</h1>
+          <p style="margin-top: 10px">No se preocupe si se equivoca o se sale del tema. Yo ordeno todo después.</p>
+        </div>
+      </div>
+      <section class="card grabadora">
+        <div class="grabadora-tiempo" role="timer" aria-live="off">
+          <span class="recdot" id="e1-punto" aria-hidden="true" hidden></span>
+          <span id="e1-tiempo" class="tiempo">00:00</span>
+          <span id="e1-estado" style="font-weight: 700">Listo para grabar</span>
+        </div>
+        <div class="wave" id="e1-onda" aria-hidden="true"></div>
+        <button type="button" class="mic idle" id="e1-mic" aria-label="Grabar. Toque el micrófono para empezar o pausar"><span class="ring"></span><span class="ring r2"></span><span class="ring r3"></span><span class="mic-ico"></span></button>
+        <div class="entendiendo" role="status">
+          <label for="transcripcion" style="font-size: .85em; font-weight: 700">Lo que voy entendiendo</label>
+          <textarea id="transcripcion" class="transcripcion" rows="4" readonly placeholder="Toque el micrófono y empiece cuando quiera. Aquí irá apareciendo lo que usted dice."></textarea>
+          <p id="ensenar-aviso-mic" class="aviso-suave" hidden>El micrófono no está disponible. Escriba aquí lo que quiere enseñar y toque «Terminé».</p>
+        </div>
+      </section>
+      <div class="row" style="justify-content: center">
+        <button type="button" class="btn btn-p" id="btn-terminar" disabled><i data-icono="check" data-s="28"></i>Terminé</button>
+        <button type="button" class="btn btn-s" id="btn-pausa"><i data-icono="mic" data-s="26"></i><span>Empezar a grabar</span></button>
+      </div>
+      <button type="button" class="btn btn-ghost" id="e1-alternar" style="align-self: center"><i data-icono="keyboard" data-s="26"></i><span>Prefiero escribir</span></button>
+    </section>
+
+    <!-- ═════════ E2 · ORDENANDO ═════════ -->
+    <section id="ordenando" class="pantalla focus fade pantalla-col" style="align-items: center; text-align: center" hidden>
+      <div style="width: 360px; max-width: 100%" data-ilustracion="te"></div>
+      <h1 tabindex="-1" style="font-size: 2.1em; line-height: 1.1" role="status">Estoy ordenando su guía…</h1>
+      <p>Tómese un tecito mientras tanto. Demoro menos de un minuto.</p>
+      <ul class="card tareas" id="e2-tareas"></ul>
+    </section>
+
+    <!-- ═════════ E3 · GUÍA CREADA ═════════ -->
+    <section id="guia-creada" class="pantalla fade" hidden>
+      <div class="wrap" style="padding-top: 24px; padding-bottom: 40px">
+        <p class="pill" id="e3-estado" style="background: #FFF1D6; color: #6B4A0E; border: 2px solid #E3B866">Borrador · revise antes de publicar</p>
+        <article class="card" style="margin-top: 20px; overflow: hidden" data-cat-tarjeta>
+          <header class="e3-cabecera">
+            <div id="e3-ilus" class="e3-ilus"></div>
+            <div style="display: flex; flex-direction: column; gap: 16px">
+              <p id="e3-cat" style="font-weight: 700; color: #8E3717"></p>
+              <h1 id="e3-titulo" tabindex="-1" style="font-size: 2.2em; line-height: 1.08"></h1>
+              <div class="con-icono" style="gap: 14px"><span id="e3-retrato"></span><p id="e3-autor"></p></div>
+              <div class="row" id="e3-pills" style="gap: 10px; font-size: .9em"></div>
+            </div>
+          </header>
+          <div class="e3-cuerpo">
+            <section aria-labelledby="mat">
+              <h2 id="mat" style="font-size: 1.4em">Materiales</h2>
+              <ul id="e3-mats" class="lista-mats"></ul>
+            </section>
+            <section aria-labelledby="pasos-t">
+              <h2 id="pasos-t" style="font-size: 1.4em">Pasos</h2>
+              <ol id="e3-pasos" class="lista-pasos"></ol>
+            </section>
+          </div>
+          <div class="g2" style="padding: 0 40px 40px; gap: 24px" id="e3-extra"></div>
+        </article>
+      </div>
+      <div class="barra-acciones">
+        <div class="wrap row controles" data-controles style="min-height: 112px; justify-content: center"></div>
+      </div>
+    </section>
+
+    <!-- ═════════ E4 · PUBLICADA ═════════ -->
+    <section id="publicada" class="pantalla fade" hidden style="position: relative; overflow: hidden">
+      <div class="confetti" aria-hidden="true"></div>
+      <div class="wrap two" style="padding-top: 48px; padding-bottom: 80px; align-items: center; position: relative; z-index: 6">
+        <div style="display: flex; flex-direction: column; gap: 24px">
+          <span class="circulo-ok" style="width: 128px; height: 128px"><i data-icono="check" data-s="72" data-g="2.4"></i></span>
+          <h1 id="e4-titulo" tabindex="-1" style="font-size: 2.4em; line-height: 1.08">Su guía ya está disponible.</h1>
+          <div class="dice">
+            <span class="speaker" aria-hidden="true"><i data-icono="chat" data-s="30"></i></span>
+            <div class="bubble" role="status"><p id="e4-dice" style="font-size: 1.1em">Le avisaremos por WhatsApp cuando alguien aprenda de usted.</p></div>
+          </div>
+          <div class="row controles" data-controles style="margin-top: 8px"></div>
+        </div>
+        <article class="card" id="e4-tarjeta" style="overflow: hidden; max-width: 460px; justify-self: center; width: 100%; font-size: .85em"></article>
+      </div>
+    </section>
+
+    <!-- ═════════ F1 · MI HISTORIA ═════════ -->
+    <section id="mi-historia" class="pantalla fade" hidden>
+      <section style="background: #F8E0CC; margin-top: 24px">
+        <div class="wrap two" style="padding-top: 56px; padding-bottom: 56px; align-items: center">
+          <div style="display: flex; flex-direction: column; gap: 22px">
+            <p class="con-icono" style="font-weight: 700; color: #8E3717"><i data-icono="sprout" data-s="28"></i>Mi historia</p>
+            <h1 id="f1-titulo" tabindex="-1" style="font-size: 2.5em; line-height: 1.06"></h1>
+            <blockquote id="f1-cita" style="background: #FFFFFF; border-radius: 20px; padding: 20px 26px; font-size: 1.05em"></blockquote>
+          </div>
+          <div id="f1-ilus" style="max-width: 500px; width: 100%; justify-self: center"></div>
+        </div>
+      </section>
+      <section class="wrap" style="padding-top: 56px; padding-bottom: 80px" aria-labelledby="camino">
+        <div class="titulo-con-accion">
+          <h2 id="camino" style="font-size: 1.6em">Su camino</h2>
+          <p class="pill-oro" id="f1-logrados"><i data-icono="award" data-s="28"></i><span></span></p>
+        </div>
+        <div class="camino">
+          <div aria-hidden="true" class="camino-linea"></div>
+          <div aria-hidden="true" class="camino-linea camino-avance" id="f1-avance"></div>
+          <ol class="g5" id="f1-hitos" style="position: relative"></ol>
+        </div>
+        <div class="card siguiente-paso">
+          <span class="icono-caja" style="width: 80px; height: 80px; border-radius: 22px; background: #F8E0CC; color: #8E3717"><i data-icono="mic" data-s="44"></i></span>
+          <div style="flex-grow: 1; min-width: 260px"><p style="font-weight: 700; color: #8E3717; font-size: .85em">Siguiente paso</p><p style="font-size: 1.25em; font-weight: 700">Grabar una lección de vida</p><p>Su historia puede acompañar a un joven que hoy vive lo mismo.</p></div>
+          <button type="button" class="btn btn-p" data-ir="leccion">Grabar mi lección</button>
+        </div>
+      </section>
+    </section>
+
+    <!-- ═════════ F2 · LECCIÓN DE VIDA ═════════ -->
+    <section id="leccion" class="pantalla fade" hidden>
+      <div id="f2-grabar" class="focus pantalla-col">
+        <p style="font-weight: 700; color: #8E3717">Mi historia · Lección de vida</p>
+        <div class="dice">
+          <span class="speaker" aria-hidden="true"><i data-icono="speaker" data-s="32"></i></span>
+          <div class="bubble" role="status">
+            <h1 tabindex="-1" style="font-size: 1.6em; line-height: 1.15">Cuénteme un momento difícil de su vida y qué aprendió de él.</h1>
+            <p style="margin-top: 10px">Yo lo ordeno en cuatro partes para que un joven lo entienda.</p>
+          </div>
+        </div>
+        <div data-zona-voz data-multilinea></div>
+      </div>
+      <div id="f2-resultado" class="wrap pantalla-col" hidden>
+        <div class="dice" style="max-width: 820px">
+          <span class="speaker" aria-hidden="true"><i data-icono="speaker" data-s="32"></i></span>
+          <div class="bubble" role="status"><p class="bubble-titulo">SABERES le dice</p><p style="margin-top: 6px">Así quedó su lección. Le puse el título con sus propias palabras.</p></div>
+        </div>
+        <article class="card" style="padding: 40px" aria-labelledby="f2-titulo" id="f2-tarjeta"></article>
+        <div class="controles" data-controles></div>
+      </div>
+    </section>
+
+    <!-- ═════════ G · MIS GUÍAS Y GRACIAS ═════════ -->
+    <section id="mis-guias" class="pantalla wrap fade" hidden>
+      <div class="side side-g" style="padding-top: 24px; padding-bottom: 80px">
+        <div style="display: flex; flex-direction: column; gap: 40px">
+          <div>
+            <h1 tabindex="-1" style="font-size: 2.3em; line-height: 1.08">Mis guías y gracias</h1>
+            <p class="pill-oro" style="margin-top: 16px"><i data-icono="award" data-s="32"></i><span id="contador-texto"><span id="contador-numero">0</span> personas aprendieron con usted</span></p>
+          </div>
+          <section aria-labelledby="misg">
+            <h2 id="misg" style="font-size: 1.4em">Mis guías</h2>
+            <ul id="lista-mis-guias" style="display: flex; flex-direction: column; gap: 14px; margin-top: 18px"></ul>
+          </section>
+          <section aria-labelledby="muro">
+            <div class="titulo-con-accion" style="align-items: center">
+              <h2 id="muro" style="font-size: 1.4em">Muro de gracias</h2>
+              <button type="button" class="btn btn-o btn-md" id="mg-escuchar"><i data-icono="speaker" data-s="26"></i>Escuchar mis gracias</button>
+            </div>
+            <div class="g2" id="mg-muro" style="margin-top: 18px; gap: 18px"></div>
+          </section>
+        </div>
+        <aside class="aside-celular">
+          <p style="font-weight: 700; text-align: center" id="mg-celular-titulo">Lo que le llega a su celular</p>
+          <div class="celular-bloqueo" role="img" id="mg-celular"></div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ═════════ J1 · EXPLORAR (JÓVENES) ═════════ -->
+    <section id="jovenes" class="pantalla fade joven" hidden>
+      <section style="background: #F8E0CC; padding: 48px 0 56px; margin-top: 20px">
+        <div class="wrap" style="display: flex; flex-direction: column; gap: 18px">
+          <h1 tabindex="-1" style="font-size: 44px; line-height: 1.08">Aprende de quien ya lo vivió</h1>
+          <p style="font-size: 20px; max-width: 640px">Guías contadas con la voz de personas mayores de todo Chile. Cuando aprendas, dales las gracias.</p>
+          <form role="search" id="j-buscar" class="j-buscar">
+            <label for="buscador" class="sr-only">Buscar guías</label>
+            <input id="buscador" class="field field-sm" type="search" placeholder="¿Qué quieres aprender? Pan, enchufes, huerto…" style="min-height: 64px; font-size: 19px">
+            <button type="submit" class="btn btn-p btn-sm" style="min-height: 64px"><i data-icono="search" data-s="22"></i>Buscar</button>
+          </form>
+        </div>
+      </section>
+      <div class="wrap jside" style="padding-top: 36px; padding-bottom: 72px">
+        <aside aria-labelledby="cats">
+          <h2 id="cats" style="font-size: 20px">Categorías</h2>
+          <ul id="filtros" style="display: flex; flex-direction: column; gap: 4px; margin-top: 14px"></ul>
+          <button type="button" class="tile" data-ir="experiencia" style="margin-top: 24px; padding: 18px; flex-direction: column; gap: 8px; background: #EEF3E6; border-color: #B9CBA0">
+            <span class="con-icono" style="font-weight: 700; color: #2F451A; gap: 8px"><i data-icono="users" data-s="22"></i>Por experiencia</span>
+            <span style="font-size: 16px">Personas que vivieron lo mismo que tú</span>
+          </button>
+        </aside>
+        <div>
+          <p id="j-cuenta" style="font-weight: 700"></p>
+          <div class="g3" id="lista-jovenes" style="margin-top: 18px"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═════════ J2 · GUÍA (JÓVENES) ═════════ -->
+    <section id="guia-joven" class="pantalla wrap fade joven" hidden>
+      <div style="padding-top: 20px; padding-bottom: 72px">
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <p class="row" id="j2-pills" style="gap: 8px"></p>
+          <h1 id="j2-titulo" tabindex="-1" style="font-size: 40px; line-height: 1.1"></h1>
+          <p class="con-icono" style="gap: 8px; font-weight: 700; color: #8E3717"><i data-icono="heart" data-s="20"></i><span id="j2-cuenta"></span></p>
+        </div>
+        <div class="side" style="grid-template-columns: minmax(0, 1fr) 360px; margin-top: 28px">
+          <div style="display: flex; flex-direction: column; gap: 22px" id="j2-cuerpo"></div>
+          <aside class="card j2-autor" id="j2-autor"></aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═════════ J3 · DAR LAS GRACIAS ═════════ -->
+    <section id="gracias-joven" class="pantalla fade joven" hidden style="position: relative; overflow: hidden; min-height: 760px">
+      <div class="confetti" aria-hidden="true"></div>
+      <div class="wrap" style="max-width: 800px; padding-top: 40px; padding-bottom: 72px; position: relative; z-index: 6">
+        <section class="card j3-card" id="j3-pendiente">
+          <span id="j3-retrato"></span>
+          <h1 id="j3-titulo" tabindex="-1" style="font-size: 34px; line-height: 1.15"></h1>
+          <p id="j3-sub" style="font-size: 20px"></p>
+          <div class="row" id="j3-rapidos" style="justify-content: center; gap: 10px"></div>
+          <div style="width: 100%; text-align: left; display: grid; gap: 8px">
+            <label for="nombre-joven" style="font-weight: 700">Tu nombre</label>
+            <input id="nombre-joven" class="field field-sm" type="text" autocomplete="given-name" placeholder="Ej: Tomás">
+          </div>
+          <div style="width: 100%; text-align: left">
+            <label for="j3-msg" style="font-weight: 700">Tu mensaje (opcional)</label>
+            <textarea id="j3-msg" class="field field-sm" rows="3" style="margin-top: 8px"></textarea>
+          </div>
+          <button type="button" class="btn btn-p btn-full" id="j3-enviar" style="font-size: 22px; min-height: 76px"><i data-icono="heart" data-s="28"></i><span></span></button>
+        </section>
+        <section class="card j3-card" id="j3-enviado" hidden>
+          <span class="circulo-ok" style="width: 104px; height: 104px"><i data-icono="check" data-s="56" data-g="2.6"></i></span>
+          <h1 id="j3-ok" style="font-size: 34px; line-height: 1.15" role="status"></h1>
+          <div class="wa-preview" id="j3-wa"></div>
+          <div class="row" style="justify-content: center; margin-top: 6px">
+            <button type="button" class="btn btn-p btn-sm" data-ir="experiencia" style="min-height: 60px"><i data-icono="users" data-s="22"></i>Personas que vivieron lo mismo que tú</button>
+            <button type="button" class="btn btn-s btn-sm" data-ir="jovenes" style="min-height: 60px">Seguir explorando</button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ═════════ J4 · POR EXPERIENCIA ═════════ -->
+    <section id="experiencia" class="pantalla fade joven" hidden>
+      <section style="background: #E6EEDC; padding: 44px 0 48px; margin-top: 20px">
+        <div class="wrap" style="display: flex; flex-direction: column; gap: 14px">
+          <p style="font-weight: 700; color: #2F451A">Lecciones de vida</p>
+          <h1 tabindex="-1" style="font-size: 44px; line-height: 1.08">Personas que vivieron lo mismo que tú</h1>
+          <p style="font-size: 20px; max-width: 720px">Historias reales de personas mayores que pasaron por algo parecido a lo que vives hoy. Esto aprendieron.</p>
+          <div class="row" id="j4-filtros" style="gap: 10px; margin-top: 10px" role="group" aria-label="Filtrar por experiencia"></div>
+        </div>
+      </section>
+      <div class="wrap" style="padding-top: 32px; padding-bottom: 72px">
+        <div class="g3" id="j4-lista"></div>
+      </div>
+    </section>
+
   </main>
 
-  <!-- Subtítulos fijos: todo lo que la app dice -->
-  <footer id="subtitulos" class="subtitulos" aria-live="polite">
-    <span id="estado" class="estado" hidden></span>
-    <p id="subtitulo" class="subtitulo"></p>
-  </footer>
+  <!-- Subtítulos: lo que SABERES dice, escucha o piensa -->
+  <div id="subtitulos" class="dark lectura" role="status" aria-live="polite" hidden>
+    <div class="wrap lectura-fila">
+      <span class="speaker" aria-hidden="true" id="estado"><span class="eq"><i></i><i></i><i></i></span></span>
+      <div style="flex-grow: 1"><p id="lectura-titulo" class="lectura-titulo">SABERES está leyendo en voz alta</p><p id="subtitulo" class="subtitulo"></p></div>
+      <button type="button" class="btn btn-w btn-md" id="btn-detener"><i data-icono="pause" data-s="24"></i>Detener</button>
+    </div>
+  </div>
 
-  <script src="mock.js"></script>
-  <script src="app.js"></script>
+  <!-- Menú de demo (tecla D) -->
+  <button type="button" class="demo-fab" id="demo-fab" aria-label="Menú de demo, tecla D">Demo · D</button>
+  <div class="demo-overlay" id="demo" hidden>
+    <div class="card fade" role="dialog" aria-modal="true" aria-labelledby="demo-t" style="width: 100%; max-width: 1080px; padding: 36px; font-size: 18px">
+      <div style="display: flex; align-items: center; gap: 16px">
+        <span class="icono-caja" style="width: 48px; height: 48px; border-radius: 14px; background: #2B1D14; color: #FFF8EE"><i data-icono="grid" data-s="26"></i></span>
+        <div style="flex-grow: 1"><h2 id="demo-t" style="font-size: 26px">Menú de demo</h2><p style="font-size: 16px">Tecla D para abrir o cerrar · Esc para cerrar · Barra espaciadora activa el micrófono</p></div>
+        <button type="button" class="btn btn-s btn-sm" id="demo-cerrar"><i data-icono="x" data-s="20"></i>Cerrar</button>
+      </div>
+      <h3 style="font-size: 18px; margin-top: 28px">Recorrido del pitch</h3>
+      <ol class="row" id="demo-recorrido" style="gap: 8px; margin-top: 12px"></ol>
+      <h3 style="font-size: 18px; margin-top: 28px">Todas las pantallas</h3>
+      <div class="g3" id="demo-grupos" style="margin-top: 12px; gap: 20px"></div>
+    </div>
+  </div>
+</div>
+
+<script src="dibujos.js"></script>
+<script src="mock.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
