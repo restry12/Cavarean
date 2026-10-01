@@ -1,4 +1,4 @@
-# SABERES – Qué falta (vs. "Plan completo Hack4Seniors")
+# SABERES – Qué falta (vs. [Plan completo Hack4Seniors](docs/plan-completo-saberes.pdf))
 
 > Revisado el 1 de octubre de 2026 contra `main` (`4afffd0`).
 > **El flujo principal está hecho:** enseñar → aprender paso a paso → "gracias" por WhatsApp, más registro por voz, vista de jóvenes y filtro de seguridad.
