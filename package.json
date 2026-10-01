@@ -1,0 +1,31 @@
+{
+  "name": "saberes",
+  "version": "1.0.0",
+  "description": "SABERES - Hack4Seniors UDD 2026",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "probar-ia": "node scripts/probar-ia.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/restry12/Caravean.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/restry12/Caravean/issues"
+  },
+  "homepage": "https://github.com/restry12/Caravean#readme",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.5",
+    "express": "^5.2.1"
+  },
+  "private": true
+}
