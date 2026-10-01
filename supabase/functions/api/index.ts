@@ -109,12 +109,14 @@ async function buscar({ pregunta = "" }: any) {
 // ---------- Explicar (IA) ----------
 async function ayuda(body: any) {
   const { paso = "", duda = "No entendí" } = body;
-  // Se usa la guía guardada, no la que manda el navegador
+  // La IA explica solo con lo que está en la enciclopedia: la guía guardada en la base,
+  // nunca la que manda el navegador. Si no está, no se llama a la IA.
   const { data } = await db.from("guias").select(COLUMNAS_GUIA).eq("id", body.guia?.id ?? "").maybeSingle();
-  const guia = data ? aGuia(data) : body.guia || {};
-  const i = (guia.pasos || []).indexOf(paso);
+  const guia = data ? aGuia(data) : null;
+  const i = guia ? guia.pasos.indexOf(paso) : -1;
   const ayudaBase = i >= 0 ? guia.ayudas?.[i] : null;
   try {
+    if (!guia) throw new Error("guía no está en la base");
     return json({ texto: await explicarPaso({ guia, paso, duda, ayudaBase }) });
   } catch (e) {
     console.warn("[ayuda] sin IA:", (e as Error).message);
