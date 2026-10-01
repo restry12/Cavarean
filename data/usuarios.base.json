@@ -1,0 +1,18 @@
+[
+  {
+    "id": "u-rosa",
+    "nombre": "Rosa",
+    "comuna": "Maipú",
+    "edad": 72,
+    "intereses": [
+      "hacer videollamadas"
+    ],
+    "saberes": [
+      "pan amasado"
+    ],
+    "palabra_clave": "clavel",
+    "telefono": "",
+    "ensenados": 1,
+    "bienvenida": "Hola de nuevo, Rosa."
+  }
+]
