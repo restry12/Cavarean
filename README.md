@@ -25,51 +25,45 @@ MODO SENIOR+ tiene **3 capas**:
 | **2. Lo hace por ti (agente de IA)** | La persona habla y el agente **ejecuta la tarea**: enviar una foto, llamar, leer un mensaje, crear un recordatorio. Siempre confirma antes de enviar algo. Botón **"Me perdí"** que mira la pantalla, explica dónde está la persona y **detecta estafas**. |
 | **3. Te cuida** | Registra **cómo** se usa el celular (nunca el contenido) y entrega un **Semáforo de Autonomía** con 4 señales (Ver, Oír, Manos, Caminar), conectado a recursos de la comuna: óptica municipal, CESFAM, GES de audífonos y talleres de actividad física. |
 
-**Hardware:** una **funda con botón físico "Me perdí"**, motor de vibración para alertas de estafa y acelerómetro para medir la marcha.
-
 ---
 
 ## 🎬 Demo
 
 1. Se activa el **Modo Senior** y la pantalla se transforma.
 2. *"Mándale a mi hija la foto del almuerzo"* → el agente elige la foto, pregunta *"¿Se la envío a Carolina?"* y, al decir que sí, **la envía de verdad** a un celular real.
-3. Llega un **SMS falso** → se aprieta el botón físico "Me perdí" → la IA revisa la pantalla, aparece la **alerta roja** y **la funda vibra**.
-4. *"No veo bien"* → el agente agranda la letra.
+3. Llega un **SMS falso** → la persona aprieta "Me perdí" → la IA revisa la pantalla y aparece la **alerta roja**.
+4. *"No veo bien"* → el agente agranda la letra en vivo.
 5. *"Recuerda que el jueves a las 10 tengo kinesiólogo"* → luego *"¿Qué tengo el jueves?"* → responde de memoria.
 6. **Semáforo de Autonomía** de "Patricia, 58 años", con tendencias de 12 semanas y recomendaciones locales.
 
 > 🎥 Video de la demo: _[agregar link]_
-> 🔌 Simulación del hardware en Wokwi: _[agregar link]_
-> 🧊 Modelo 3D de la funda: _[agregar link de Tinkercad]_
 
 ---
 
 ## 🏗️ Arquitectura
 
 ```
-[Funda (ESP32 en Wokwi)]  ──MQTT──►  [Celular simulado (navegador)]  ──HTTP──►  [Backend Node/Express]
-  botón "Me perdí"                     Modo Senior + agente                        /api/agente
-  acelerómetro (pasos)   ◄──MQTT──     Me perdí + estafas                         /api/meperdi
-  vibración                            Semáforo de autonomía                       /api/eventos
-                                       respaldo demo.json                          /api/semaforo
-                                                                                   /api/enviar
-                                                                                      │
-                                         ┌────────────────────────────────────────────┼──────────────────┐
-                                         ▼                                            ▼                  ▼
-                                  Mistral (principal)                         OpenRouter (respaldo)   Zavu / Telegram
-                                  function calling + visión                   si Mistral falla        mensaje real a la familia
+[Celular simulado (navegador)]  ──HTTP──►  [Backend Node/Express]
+  Modo Senior + agente                       /api/agente
+  Me perdí + estafas                         /api/meperdi
+  Semáforo de autonomía                      /api/eventos
+  respaldo demo.json                         /api/semaforo
+                                             /api/enviar
+                                                │
+                      ┌─────────────────────────┼─────────────────────────┐
+                      ▼                         ▼                         ▼
+               Mistral (principal)      OpenRouter (respaldo)       Zavu / Telegram
+               agente + visión          si Mistral falla            mensaje real a la familia
 ```
 
 | Componente | Tecnología |
 |---|---|
-| Frontend (celular simulado) | HTML, CSS y JavaScript; Web Speech API (voz); html2canvas; Chart.js; mqtt.js |
+| Frontend (celular simulado) | HTML, CSS y JavaScript; Web Speech API (voz); html2canvas; Chart.js |
 | Backend | Node.js 20 + Express |
 | Agente de IA | **Mistral** (`mistral-small-latest` con *function calling*) |
 | Visión ("Me perdí" y estafas) | **Mistral** (`pixtral-large-latest`) |
 | Respaldo de IA | **OpenRouter** (modelo con entrada de imagen) |
 | Mensajería real | **Zavu** (WhatsApp o SMS) y Telegram como respaldo |
-| Hardware | ESP32 + botón + MPU6050 + vibración, simulado en **Wokwi**, conectado por MQTT (HiveMQ público) |
-| Modelo 3D | Tinkercad |
 
 ---
 
@@ -100,8 +94,8 @@ MODO SENIOR+ tiene **3 capas**:
 ### Instalación
 
 ```bash
-git clone [URL-DEL-REPO]
-cd modo-senior
+git clone https://github.com/restry12/Caravean.git
+cd Caravean
 npm install
 ```
 
@@ -129,28 +123,19 @@ node server.js
 
 Abre **http://localhost:3000** en Chrome. Haz un clic en la página antes de empezar para que el navegador permita el audio.
 
-### Hardware en Wokwi
-
-1. Abre el proyecto de Wokwi (link arriba).
-2. Revisa que el tópico MQTT del código del ESP32 coincida con el de `public/app.js` (`modosenior/<equipo>/...`).
-3. Inicia la simulación: al apretar el botón, se activa "Me perdí" en el celular simulado.
-4. Para simular pasos, sube la aceleración del MPU6050 en el eje Z por sobre ~1,3 g varias veces.
-
 ---
 
 ## 📁 Estructura
 
 ```
-modo-senior/
+Caravean/
 ├─ server.js          # backend: agente, visión, eventos, semáforo, envíos
 ├─ perfil.json        # perfil que aprende: contactos, preferencias, memoria, métricas
 ├─ .env               # llaves (no se sube)
-├─ hardware/
-│  └─ funda.ino       # código del ESP32 (Wokwi)
 └─ public/
    ├─ index.html      # celular simulado + panel del Semáforo
    ├─ estilos.css
-   ├─ app.js          # Modo Senior, agente, Me perdí, adaptación, MQTT
+   ├─ app.js          # Modo Senior, agente, Me perdí, adaptación
    ├─ semaforo.json   # 12 semanas de datos de ejemplo
    ├─ demo.json       # respuestas de respaldo
    └─ fotos/          # galería y contactos de ejemplo
@@ -166,31 +151,14 @@ modo-senior/
 - El Semáforo **no diagnostica**: detecta tendencias y recomienda consultar.
 - Respaldo automático: si Mistral falla, responde OpenRouter; si no hay red, la demo usa `demo.json`.
 
-> ⚠️ Prototipo de hackatón con datos ficticios. La versión real en Android usaría el **servicio de accesibilidad** del sistema para guiar y actuar dentro de otras apps, y la funda se conectaría al celular por **Bluetooth**.
-
----
-
-## 🔧 Hardware: funda MODO SENIOR+
-
-| Componente | Función | Precio aprox. (CLP) |
-|---|---|---|
-| ESP32-C3 SuperMini | Microcontrolador con Bluetooth | 5.000 |
-| Botón arcade rojo 30 mm | "Me perdí" | 1.500 |
-| MPU6050 | Pasos y estabilidad al caminar | 3.000 |
-| Motor de vibración + transistor | Alerta de estafa | 1.000 |
-| LED | Confirmación | 200 |
-| Batería LiPo 400 mAh + TP4056 | Autonomía | 5.000 |
-| Funda impresa en 3D (TPU) | Carcasa | 3.000 |
-| **Total** | | **~18.700** |
-
-**Conexiones (Wokwi, ESP32 DevKit):** botón → GPIO 4 (INPUT_PULLUP) · MPU6050 SDA → GPIO 21, SCL → GPIO 22 · LED → GPIO 2 · buzzer (representa la vibración) → GPIO 18.
+> ⚠️ Prototipo de hackatón con datos ficticios. La versión real en Android usaría el **servicio de accesibilidad** del sistema para guiar y actuar dentro de otras apps.
 
 ---
 
 ## 🗺️ Próximos pasos
 
 - [ ] App Android nativa con servicio de accesibilidad
-- [ ] Funda física por Bluetooth Low Energy
+- [ ] Medición de la marcha con los sensores del propio celular
 - [ ] Validación con personas de 50+ en una comuna piloto
 - [ ] Integración con ópticas municipales, CESFAM y talleres comunales
 - [ ] Más herramientas para el agente (agenda de horas médicas, lectura de documentos)
@@ -204,7 +172,7 @@ modo-senior/
 | _[Nombre]_ | Interfaz |
 | _[Nombre]_ | IA y backend |
 | _[Nombre]_ | Integraciones |
-| _[Nombre]_ | Hardware y pitch |
+| _[Nombre]_ | Pitch y validación |
 
 ---
 
