@@ -274,7 +274,7 @@
     }
   ];
 
-  // ---------- Lecciones de vida (vista jóvenes «Por experiencia») ----------
+  // ---------- Lecciones de vida (vista Aprender, «Por experiencia») ----------
   const LECCIONES = [
     { who: 'hector', autor: 'Héctor', edad: 75, comuna: 'Temuco', titulo: 'Empecé de cero a los 50', etiqueta: 'Cambié de rumbo', resumen: 'Cerró la fábrica donde trabajé 25 años. Con una herramienta prestada abrí mi propio taller mecánico.', consejo: 'Lo que sabes hacer con las manos nadie te lo quita.', minutos: '4 min' },
     { who: 'rosa', autor: 'Rosa Muñoz', edad: 72, comuna: 'Puente Alto', titulo: 'Lento también se llega', etiqueta: 'Estudio y trabajo', resumen: 'Dejé el colegio a los 14 para trabajar en un taller de costura. De noche leía los cuadernos de mis hermanos.', consejo: 'Si te toca estudiar y trabajar, no te avergüences de ir lento.', minutos: '3 min' },

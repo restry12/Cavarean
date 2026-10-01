@@ -20,6 +20,7 @@
       <div class="wrap util-fila">
         <p class="hide-t solo-landing" style="font-weight: 700">Hecho en Chile para personas de 50 años y más</p>
         <div class="solo-app util-usuario"><span id="barra-avatar"></span><p id="barra-hola" style="font-weight: 700">Hola</p></div>
+        <span id="aviso-mock" class="pill aviso-mock" hidden>Modo simulado</span>
         <div class="flex1"></div>
         <span id="fs-label" class="hide-t" style="font-weight: 700">Tamaño de letra</span>
         <div class="fsbox" role="group" aria-labelledby="fs-label">
@@ -40,25 +41,25 @@
       </nav>
       <nav class="solo-landing hide-t nav-landing" aria-label="Principal">
         <a class="navlink" href="#como">Cómo funciona</a>
-        <button type="button" class="navlink" data-ir="jovenes">Para jóvenes</button>
+        <button type="button" class="navlink" data-ir="jovenes">Aprender de otros</button>
         <button type="button" class="navlink" data-accion="entrar">Entrar</button>
       </nav>
       <div class="flex1 solo-landing"></div>
       <button type="button" class="btn btn-p btn-md solo-landing" data-accion="registro">Quiero empezar</button>
-      <span id="aviso-mock" class="pill aviso-mock" hidden>Modo simulado</span>
     </div>
   </header>
 
-  <!-- ═════════ BARRA SUPERIOR · JÓVENES ═════════ -->
+  <!-- ═════════ BARRA SUPERIOR · APRENDER (para cualquier persona) ═════════ -->
   <header class="topbar topbar-joven" id="barra-joven">
     <div class="wrap barra-principal" style="min-height: 76px; gap: 14px">
-      <button type="button" class="marca" data-ir="jovenes" aria-label="SABERES para jóvenes, explorar guías"><i data-logo data-s="38"></i><span class="marca-nombre" style="font-size: 22px">SABERES</span><span class="pill" style="background: #E6EEDC; color: #3F5A24; font-size: 14px">para jóvenes</span></button>
-      <nav aria-label="Jóvenes" class="nav-joven">
+      <button type="button" class="marca" data-ir="jovenes" aria-label="SABERES para aprender, explorar guías"><i data-logo data-s="38"></i><span class="marca-nombre" style="font-size: 22px">SABERES</span><span class="pill" style="background: #E6EEDC; color: #3F5A24; font-size: 14px">para aprender</span></button>
+      <nav aria-label="Aprender" class="nav-joven">
         <button type="button" class="navlink" data-ir="jovenes" data-seccion-joven="explorar" style="min-height: 48px">Explorar guías</button>
         <button type="button" class="navlink" data-ir="experiencia" data-seccion-joven="experiencia" style="min-height: 48px">Por experiencia</button>
       </nav>
       <div class="flex1"></div>
-      <button type="button" class="btn btn-ghost btn-sm hide-t" id="btn-soy-mayor">Soy persona mayor</button>
+      <button type="button" class="listen" id="btn-escuchar-joven" aria-pressed="false" style="font-size: 17px; min-height: 48px"><i data-icono="speaker" data-s="22"></i><span>Escuchar</span></button>
+      <button type="button" class="btn btn-ghost btn-sm hide-t" id="btn-soy-mayor">Quiero enseñar</button>
       <div class="joven-usuario" id="joven-usuario" hidden><span id="joven-avatar"></span><span id="joven-nombre" style="font-weight: 700"></span></div>
     </div>
   </header>
@@ -79,7 +80,7 @@
           <p style="font-size: 1.15em; max-width: 560px">Aprenda paso a paso, enseñe hablando y deje su huella en otros.</p>
           <div class="row" style="margin-top: 8px">
             <button type="button" class="btn btn-p" id="btn-empezar" data-accion="registro">Quiero empezar<i data-icono="next" data-s="28"></i></button>
-            <button type="button" class="btn btn-s" data-ir="jovenes">Soy joven, quiero aprender</button>
+            <button type="button" class="btn btn-s" data-ir="jovenes">Quiero aprender de otros</button>
           </div>
         </div>
         <div style="max-width: 560px; justify-self: center; width: 100%" data-ilustracion="amasar"></div>
@@ -101,7 +102,7 @@
           <article class="card" style="padding: 36px; display: flex; flex-direction: column; gap: 16px">
             <span class="icono-caja" style="background: #FBEACB; color: #6B4A0E"><i data-icono="sprout" data-s="48"></i></span>
             <h3 style="font-size: 1.35em">Mi historia</h3>
-            <p>Retome el sueño que la vida dejó pendiente y convierta su experiencia en lecciones para jóvenes que hoy viven lo mismo.</p>
+            <p>Retome el sueño que la vida dejó pendiente y convierta su experiencia en lecciones para quienes hoy viven lo mismo.</p>
           </article>
         </div>
       </section>
@@ -138,7 +139,7 @@
           <i data-retrato="rosa" data-s="240"></i>
           <div style="display: flex; flex-direction: column; gap: 20px">
             <span class="pill" style="background: #FFF1D6; color: #6B4A0E; border: 2px solid #E3B866; align-self: flex-start">Testimonio de ejemplo</span>
-            <blockquote style="font-size: 1.75em; font-weight: 700; line-height: 1.25">«Nunca pude ser profesora. Hoy 40 jóvenes aprendieron mi pan amasado.»</blockquote>
+            <blockquote style="font-size: 1.75em; font-weight: 700; line-height: 1.25">«Nunca pude ser profesora. Hoy 40 personas aprendieron mi pan amasado.»</blockquote>
             <figcaption>Rosa, 72 años, Puente Alto</figcaption>
           </div>
         </figure>
@@ -155,9 +156,9 @@
       <section class="wrap" style="padding-bottom: 96px">
         <div class="dark banda-jovenes">
           <div style="display: flex; flex-direction: column; gap: 16px">
-            <p style="font-weight: 700; font-size: .85em; letter-spacing: .04em">PARA JÓVENES</p>
-            <h2 style="font-size: 1.8em; line-height: 1.15">Aprende de quien ya lo vivió.</h2>
-            <p style="max-width: 640px">Guías de oficios, cocina y vida contadas por personas mayores de todo Chile. Cuando aprendas, dales las gracias.</p>
+            <p style="font-weight: 700; font-size: .85em; letter-spacing: .04em">PARA TODOS</p>
+            <h2 style="font-size: 1.8em; line-height: 1.15">Aprenda de quien ya lo vivió.</h2>
+            <p style="max-width: 640px">Guías de oficios, cocina y vida contadas por personas mayores de todo Chile. Cualquier persona puede aprender. Cuando aprenda, deles las gracias.</p>
             <div style="margin-top: 8px"><button type="button" class="btn btn-w" data-ir="jovenes">Explorar guías</button></div>
           </div>
           <div class="hide-t" style="display: flex">
@@ -302,16 +303,17 @@
       <div class="barra-voz">
         <div class="wrap barra-voz-fila">
           <button type="button" class="mic sm idle" id="c-mic" aria-label="Hablar. Toque el micrófono o presione la barra espaciadora"><span class="ring"></span><span class="ring r2"></span><span class="ring r3"></span><span class="mic-ico"></span></button>
-          <div style="flex-grow: 1" role="status" id="c-voz-texto">
-            <p id="c-voz-linea" style="font-weight: 700; font-size: 1.1em">O dígame qué quiere hacer</p>
-            <p style="font-size: .85em">Por ejemplo: «quiero aprender a hacer una videollamada» o «quiero enseñar».</p>
+          <div class="barra-voz-col">
+            <div role="status" id="c-voz-texto">
+              <p id="c-voz-linea" style="font-weight: 700; font-size: 1.1em">O dígame qué quiere hacer</p>
+              <p style="font-size: .8em">Por ejemplo: «quiero aprender a hacer una videollamada» o «quiero enseñar».</p>
+            </div>
+            <form id="c-escribir" class="c-escribir">
+              <label for="c-in" class="sr-only">O escriba qué quiere hacer</label>
+              <input id="c-in" class="field field-sm" type="text" placeholder="O escriba qué quiere hacer" autocomplete="off">
+              <button type="submit" class="btn btn-p btn-sm" style="min-height: 60px">Listo</button>
+            </form>
           </div>
-          <form id="c-escribir" class="c-escribir" hidden>
-            <label for="c-in" class="sr-only">Escriba qué quiere hacer</label>
-            <input id="c-in" class="field" type="text" placeholder="Escriba qué quiere hacer" autocomplete="off">
-            <button type="submit" class="btn btn-p btn-md">Listo</button>
-          </form>
-          <button type="button" class="btn btn-ghost" id="c-alternar"><i data-icono="keyboard" data-s="26"></i><span>Prefiero escribir</span></button>
         </div>
       </div>
     </section>
@@ -390,8 +392,8 @@
         <div class="wave" id="e1-onda" aria-hidden="true"></div>
         <button type="button" class="mic idle" id="e1-mic" aria-label="Grabar. Toque el micrófono para empezar o pausar"><span class="ring"></span><span class="ring r2"></span><span class="ring r3"></span><span class="mic-ico"></span></button>
         <div class="entendiendo" role="status">
-          <label for="transcripcion" style="font-size: .85em; font-weight: 700">Lo que voy entendiendo</label>
-          <textarea id="transcripcion" class="transcripcion" rows="4" readonly placeholder="Toque el micrófono y empiece cuando quiera. Aquí irá apareciendo lo que usted dice."></textarea>
+          <label for="transcripcion" style="font-size: .85em; font-weight: 700">Lo que voy entendiendo · también puede escribir o corregir aquí</label>
+          <textarea id="transcripcion" class="transcripcion" rows="4" placeholder="Hable o escriba aquí lo que quiere enseñar."></textarea>
           <p id="ensenar-aviso-mic" class="aviso-suave" hidden>El micrófono no está disponible. Escriba aquí lo que quiere enseñar y toque «Terminé».</p>
         </div>
       </section>
@@ -399,7 +401,6 @@
         <button type="button" class="btn btn-p" id="btn-terminar" disabled><i data-icono="check" data-s="28"></i>Terminé</button>
         <button type="button" class="btn btn-s" id="btn-pausa"><i data-icono="mic" data-s="26"></i><span>Empezar a grabar</span></button>
       </div>
-      <button type="button" class="btn btn-ghost" id="e1-alternar" style="align-self: center"><i data-icono="keyboard" data-s="26"></i><span>Prefiero escribir</span></button>
     </section>
 
     <!-- ═════════ E2 · ORDENANDO ═════════ -->
@@ -483,7 +484,7 @@
         </div>
         <div class="card siguiente-paso">
           <span class="icono-caja" style="width: 80px; height: 80px; border-radius: 22px; background: #F8E0CC; color: #8E3717"><i data-icono="mic" data-s="44"></i></span>
-          <div style="flex-grow: 1; min-width: 260px"><p style="font-weight: 700; color: #8E3717; font-size: .85em">Siguiente paso</p><p style="font-size: 1.25em; font-weight: 700">Grabar una lección de vida</p><p>Su historia puede acompañar a un joven que hoy vive lo mismo.</p></div>
+          <div style="flex-grow: 1; min-width: 260px"><p style="font-weight: 700; color: #8E3717; font-size: .85em">Siguiente paso</p><p style="font-size: 1.25em; font-weight: 700">Grabar una lección de vida</p><p>Su historia puede acompañar a alguien que hoy vive lo mismo.</p></div>
           <button type="button" class="btn btn-p" data-ir="leccion">Grabar mi lección</button>
         </div>
       </section>
@@ -497,7 +498,7 @@
           <span class="speaker" aria-hidden="true"><i data-icono="speaker" data-s="32"></i></span>
           <div class="bubble" role="status">
             <h1 tabindex="-1" style="font-size: 1.6em; line-height: 1.15">Cuénteme un momento difícil de su vida y qué aprendió de él.</h1>
-            <p style="margin-top: 10px">Yo lo ordeno en cuatro partes para que un joven lo entienda.</p>
+            <p style="margin-top: 10px">Yo lo ordeno en cuatro partes para que cualquier persona lo entienda.</p>
           </div>
         </div>
         <div data-zona-voz data-multilinea></div>
@@ -539,15 +540,15 @@
       </div>
     </section>
 
-    <!-- ═════════ J1 · EXPLORAR (JÓVENES) ═════════ -->
+    <!-- ═════════ J1 · APRENDER: EXPLORAR GUÍAS ═════════ -->
     <section id="jovenes" class="pantalla fade joven" hidden>
       <section style="background: #F8E0CC; padding: 48px 0 56px; margin-top: 20px">
         <div class="wrap" style="display: flex; flex-direction: column; gap: 18px">
-          <h1 tabindex="-1" style="font-size: 44px; line-height: 1.08">Aprende de quien ya lo vivió</h1>
-          <p style="font-size: 20px; max-width: 640px">Guías contadas con la voz de personas mayores de todo Chile. Cuando aprendas, dales las gracias.</p>
+          <h1 tabindex="-1" style="font-size: 44px; line-height: 1.08">Aprenda de quien ya lo vivió</h1>
+          <p style="font-size: 20px; max-width: 640px">Guías contadas con la voz de personas mayores de todo Chile, para cualquier persona que quiera aprender. Cuando aprenda, deles las gracias.</p>
           <form role="search" id="j-buscar" class="j-buscar">
             <label for="buscador" class="sr-only">Buscar guías</label>
-            <input id="buscador" class="field field-sm" type="search" placeholder="¿Qué quieres aprender? Pan, enchufes, huerto…" style="min-height: 64px; font-size: 19px">
+            <input id="buscador" class="field field-sm" type="search" placeholder="¿Qué quiere aprender? Pan, enchufes, huerto…" style="min-height: 64px; font-size: 19px">
             <button type="submit" class="btn btn-p btn-sm" style="min-height: 64px"><i data-icono="search" data-s="22"></i>Buscar</button>
           </form>
         </div>
@@ -558,7 +559,7 @@
           <ul id="filtros" style="display: flex; flex-direction: column; gap: 4px; margin-top: 14px"></ul>
           <button type="button" class="tile" data-ir="experiencia" style="margin-top: 24px; padding: 18px; flex-direction: column; gap: 8px; background: #EEF3E6; border-color: #B9CBA0">
             <span class="con-icono" style="font-weight: 700; color: #2F451A; gap: 8px"><i data-icono="users" data-s="22"></i>Por experiencia</span>
-            <span style="font-size: 16px">Personas que vivieron lo mismo que tú</span>
+            <span style="font-size: 16px">Personas que vivieron lo mismo que usted</span>
           </button>
         </aside>
         <div>
@@ -568,7 +569,7 @@
       </div>
     </section>
 
-    <!-- ═════════ J2 · GUÍA (JÓVENES) ═════════ -->
+    <!-- ═════════ J2 · APRENDER: GUÍA ═════════ -->
     <section id="guia-joven" class="pantalla wrap fade joven" hidden>
       <div style="padding-top: 20px; padding-bottom: 72px">
         <div style="display: flex; flex-direction: column; gap: 10px">
@@ -593,11 +594,11 @@
           <p id="j3-sub" style="font-size: 20px"></p>
           <div class="row" id="j3-rapidos" style="justify-content: center; gap: 10px"></div>
           <div style="width: 100%; text-align: left; display: grid; gap: 8px">
-            <label for="nombre-joven" style="font-weight: 700">Tu nombre</label>
+            <label for="nombre-joven" style="font-weight: 700">Su nombre</label>
             <input id="nombre-joven" class="field field-sm" type="text" autocomplete="given-name" placeholder="Ej: Tomás">
           </div>
           <div style="width: 100%; text-align: left">
-            <label for="j3-msg" style="font-weight: 700">Tu mensaje (opcional)</label>
+            <label for="j3-msg" style="font-weight: 700">Su mensaje (opcional)</label>
             <textarea id="j3-msg" class="field field-sm" rows="3" style="margin-top: 8px"></textarea>
           </div>
           <button type="button" class="btn btn-p btn-full" id="j3-enviar" style="font-size: 22px; min-height: 76px"><i data-icono="heart" data-s="28"></i><span></span></button>
@@ -607,7 +608,7 @@
           <h1 id="j3-ok" style="font-size: 34px; line-height: 1.15" role="status"></h1>
           <div class="wa-preview" id="j3-wa"></div>
           <div class="row" style="justify-content: center; margin-top: 6px">
-            <button type="button" class="btn btn-p btn-sm" data-ir="experiencia" style="min-height: 60px"><i data-icono="users" data-s="22"></i>Personas que vivieron lo mismo que tú</button>
+            <button type="button" class="btn btn-p btn-sm" data-ir="experiencia" style="min-height: 60px"><i data-icono="users" data-s="22"></i>Personas que vivieron lo mismo que usted</button>
             <button type="button" class="btn btn-s btn-sm" data-ir="jovenes" style="min-height: 60px">Seguir explorando</button>
           </div>
         </section>
@@ -619,8 +620,8 @@
       <section style="background: #E6EEDC; padding: 44px 0 48px; margin-top: 20px">
         <div class="wrap" style="display: flex; flex-direction: column; gap: 14px">
           <p style="font-weight: 700; color: #2F451A">Lecciones de vida</p>
-          <h1 tabindex="-1" style="font-size: 44px; line-height: 1.08">Personas que vivieron lo mismo que tú</h1>
-          <p style="font-size: 20px; max-width: 720px">Historias reales de personas mayores que pasaron por algo parecido a lo que vives hoy. Esto aprendieron.</p>
+          <h1 tabindex="-1" style="font-size: 44px; line-height: 1.08">Personas que vivieron lo mismo que usted</h1>
+          <p style="font-size: 20px; max-width: 720px">Historias reales de personas mayores que pasaron por algo parecido a lo que usted vive hoy. Esto aprendieron.</p>
           <div class="row" id="j4-filtros" style="gap: 10px; margin-top: 10px" role="group" aria-label="Filtrar por experiencia"></div>
         </div>
       </section>
@@ -637,6 +638,7 @@
       <span class="speaker" aria-hidden="true" id="estado"><span class="eq"><i></i><i></i><i></i></span></span>
       <div style="flex-grow: 1"><p id="lectura-titulo" class="lectura-titulo">SABERES está leyendo en voz alta</p><p id="subtitulo" class="subtitulo"></p></div>
       <button type="button" class="btn btn-w btn-md" id="btn-detener"><i data-icono="pause" data-s="24"></i>Detener</button>
+      <button type="button" class="btn btn-w btn-md" id="btn-otra-vez" hidden><i data-icono="repeat" data-s="24"></i>Escuchar otra vez</button>
     </div>
   </div>
 
