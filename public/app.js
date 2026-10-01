@@ -824,7 +824,8 @@ function grabarHastaQueToque() {
     $('#ensenar-aviso-mic').hidden = micOk;
     pintarTiempo();
     pintarEstado();
-    if (micOk) grabar();
+    // Solo graba cuando la persona toca «Empezar a grabar» (o el micrófono)
+    if (micOk && VOZ_AUTO) grabar();
   });
 }
 
@@ -1702,7 +1703,7 @@ async function flujoEnsenar(g) {
   $('#transcripcion').value = '';
   $('#btn-terminar').disabled = true;
   micEstado($('#e1-mic'), 'idle');
-  await hablar('Cuénteme cómo lo hace, como si se lo explicara a un nieto. No se preocupe si se equivoca o se sale del tema. Yo ordeno todo después. Cuando termine, toque «Terminé».');
+  await hablar('Cuénteme cómo lo hace, como si se lo explicara a un nieto. No se preocupe si se equivoca o se sale del tema. Yo ordeno todo después. Toque «Empezar a grabar» cuando esté listo, y «Terminé» cuando acabe.');
   const relato = await grabarHastaQueToque();
   if (normal(relato).split(' ').filter(Boolean).length < 4) {
     await hablar('No alcancé a escuchar lo suficiente. Probemos otra vez, con calma.');
