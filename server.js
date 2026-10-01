@@ -22,9 +22,14 @@ if (hayVoz()) {
 }
 app.use("/api", express.raw({ type: "*/*", limit: "1mb" }));
 
+// Solo se reenvían las rutas del backend: así nadie puede usar este servidor
+// (por ejemplo con "../") para llegar a otras funciones del proyecto.
+const RUTAS_API = /^\/api\/(registro|entrar|buscar|ayuda|ensenar|descartar|aprendi|voz|guias)$/;
+
 app.all("/api/*ruta", async (req, res) => {
+  if (!RUTAS_API.test(req.path)) return res.status(404).json({ error: "Ruta no encontrada." });
   try {
-    const r = await fetch(API + req.originalUrl, {
+    const r = await fetch(API + req.path, {
       method: req.method,
       headers: { "Content-Type": req.get("Content-Type") || "application/json" },
       body: ["GET", "HEAD"].includes(req.method) ? undefined : req.body,

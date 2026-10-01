@@ -47,6 +47,12 @@ Todo se usa **hablando**, incluso el registro.
 3. **Aprender:** un joven sigue esa guía paso a paso; dice *"no entendí"* y la IA se lo explica de otra forma.
 4. **El gracias:** el joven toca *"¡Aprendí!"* y el celular de Rosa recibe el mensaje.
 
+> En el paso 3 hay que abrir **la guía nueva de Rosa** (la que parte en 0, marcada *Nueva* y primera en la lista): el WhatsApp sale en los hitos 1, 10, 50 y 100.
+
+| Bienvenida | Explorar guías | Guía paso a paso |
+|---|---|---|
+| ![Bienvenida](docs/capturas/1-bienvenida.jpg) | ![Explorar guías](docs/capturas/2-explorar-guias.jpg) | ![Guía paso a paso](docs/capturas/3-guia-paso-a-paso.jpg) |
+
 > 🎥 Video de la demo: _[agregar link]_
 
 ---
@@ -157,6 +163,9 @@ Caravean/
 └─ scripts/
    ├─ probar-ia.js              # pruebas de los prompts
    └─ guias-ejemplo.json
+docs/
+├─ plan-completo-saberes.pdf
+└─ capturas/                    # pantallas para el README y las slides
 ```
 
 ---

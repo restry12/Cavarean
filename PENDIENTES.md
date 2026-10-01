@@ -26,11 +26,12 @@
 
 ## 🎨 P1 – Interfaz
 
-- [ ] **Borrar restos de la idea anterior (MODO SENIOR+)**, que nadie usa: `public/demo.json`, `public/semaforo.json` y `public/fotos/` (7 SVG). El respaldo real es `mock.js`.
-- [ ] **Guion de la demo:** en el momento 3, el jurado debe abrir **la guía nueva de Rosa** (parte en 0). Si abre una precargada (ej. 58 → 59) **no sale WhatsApp** por los hitos. Destacarla primero en la vista de jóvenes ayuda.
-- [ ] Verificar el **clic inicial** para que Chrome permita el audio (riesgo del plan).
-- [ ] **Capturas de pantalla** de las vistas para el README y las slides.
-- [ ] Decidir si se suma la pregunta opcional del **celular de un familiar** (el plan la tiene; hoy no está). Para la demo es mejor sin ella: el aviso siempre llega a `NUMERO_DEMO`.
+- [x] ~~Borrar restos de MODO SENIOR+~~ → borrados `demo.json`, `semaforo.json` y `public/fotos/` (nadie los usaba).
+- [x] ~~Destacar la guía nueva de Rosa~~ → las guías con 0 aprendieron salen **primero** y con la etiqueta *Nueva*, en la vista de jóvenes y en la bienvenida.
+- [ ] **Guion de la demo:** en el momento 3, el jurado abre **la primera guía de la lista** (la nueva de Rosa, en 0). Si abre una precargada (ej. 58 → 59) **no sale WhatsApp** por los hitos. Antes de la demo, correr `reiniciar_demo()` para que no quede otra guía de prueba en 0 que le gane el primer lugar.
+- [x] ~~Verificar el clic inicial del audio~~ → la bienvenida no habla sola; la primera voz sale siempre después de un toque, y Chrome recuerda ese toque para toda la página (probado en Chrome con la voz de Mistral). Si se recarga la página a mitad de la demo, tocar cualquier botón antes de que hable.
+- [x] ~~Capturas~~ → `docs/capturas/` (bienvenida, explorar guías, guía paso a paso), ya en el README. Faltan las de la vista de mayores con sesión iniciada si se quieren en las slides.
+- [x] ~~Celular de un familiar~~ → **no se suma**: para la demo el aviso siempre llega a `NUMERO_DEMO`. Queda como próximo paso.
 - [ ] Día de la demo: **maneja la vista de mayores**.
 
 ## 🧠 P2 – IA y backend
@@ -42,24 +43,23 @@
   - `NUMERO_DEMO`: el número ya lo tiene P2 (está en su `.env` local). Con llave `zv_test_` ese celular debe estar inscrito como miembro del equipo en Zavu.
   - Opcional: `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID`.
   - No hace falta volver a desplegar: los secretos se leen solos.
-- [ ] **Seguridad** (encontrado en revisión automática; no bloquea la demo):
-  - `server.js` pega la URL tal cual a Supabase → con `../` se podría llegar a otras funciones del proyecto. *Arreglo rápido; espera a que se cierre el trabajo de voz, que también toca `server.js`.*
-  - `/aprendi` sin límite → se podría inflar el contador y disparar WhatsApp en los hitos. *Arreglo rápido en `index.ts`; mismo motivo.*
-  - `/ensenar` y `/descartar` confían en el `usuarioId` del navegador → se puede publicar o borrar a nombre de otra persona. *Necesita que el registro devuelva un token y que `app.js` lo mande: coordinar con P1.*
-- [ ] **Voz con Mistral Voxtral (en curso, sin commit):** hay cambios locales en `app.js`, `server.js`, `index.ts`, `voz.js` y `crear-voz.js`. Al terminarlos: commit en `andy-backend`, `npm run probar-ia` y desplegar la función `api` otra vez (agrega la ruta `/api/voz`).
+- [x] ~~Seguridad: `server.js` reenviaba cualquier ruta a Supabase~~ → ahora solo reenvía las rutas de `/api` conocidas (probado con `../` y `%2e%2e`: 404).
+- [x] ~~Seguridad: `/aprendi` sin límite~~ → cuenta 1 vez por persona (IP) y guía cada 10 minutos; si no suma, no manda WhatsApp (función SQL `contar_aprendizaje`, desplegada en la v10).
+- [ ] **Seguridad pendiente:** `/ensenar` y `/descartar` confían en el `usuarioId` del navegador → se puede publicar o borrar a nombre de otra persona. Necesita un token de sesión que devuelvan registro y entrar, y que `app.js` lo mande. **Se deja para después de la demo:** el menú de demo (tecla D) entra como Rosa sin token, así que exigirlo hoy rompería la presentación.
+- [x] ~~Voz con Mistral Voxtral~~ → en `main` y desplegada.
+- [x] ~~"Escuchar esta página" leía solo el título~~ → ahora lee todo el contenido visible; verificado en Chrome: 0 textos sin voz en las 20 pantallas.
 - [ ] Día de la demo: **maneja la vista de jóvenes**.
-- Para repetir la demo desde cero: `select public.reiniciar_demo();` en el SQL Editor de Supabase.
+- Para repetir la demo desde cero: `select public.reiniciar_demo();` en el SQL Editor de Supabase (también borra el registro de "¡Aprendí!", así el primero vuelve a avisar).
+- Ojo en los ensayos: desde un mismo computador, "¡Aprendí!" en la **misma guía** cuenta una sola vez cada 10 minutos. Usen una guía nueva o corran `reiniciar_demo()`.
 
 ## 🔌 P3 – Integraciones
 
-- [ ] **Dejar funcionando WhatsApp con Zavu** y probarlo con un envío real:
-  - Llave `zv_test_`: el celular de `NUMERO_DEMO` inscrito como miembro del equipo en Zavu.
-  - Llave `zv_live_`: requiere WhatsApp Business; el celular debe escribir primero al número de Zavu (ventana de 24 h).
+- [x] ~~Dejar funcionando WhatsApp con Zavu~~ → **probado con envío real** desde `avisos.js` con la llave `zv_test_`: Zavu lo marca `delivered` en el celular de `NUMERO_DEMO`. Falta solo que esos mismos secretos estén en Supabase (tarea de P2 arriba) para que salga desde la app.
 - [ ] **Plan B: Telegram** configurado (`@BotFather` → `/newbot` → escribirle al bot → `chat.id` en `getUpdates`). Ojo: el canal de Zavu ahora es solo WhatsApp, así que el plan B del plan (`ZAVU_CANAL=sms`) ya no aplica.
-- [ ] **Hacer el repo público** (hoy GitHub responde 404) antes de las 16:45, sin el `.env`.
+- [ ] **Hacer el repo público** (hoy GitHub responde 404) antes de las 16:45, sin el `.env`. *Revisado: ningún commit tiene `.env` ni llaves (Zavu, OpenRouter, Telegram, Mistral, JWT), se puede abrir.*
 - [ ] **Prueba de punta a punta:** registro → enseñar → jurado aprende la guía nueva → llega el WhatsApp.
 - [ ] **Grabar el video de respaldo** de la demo completa (15:30).
-- [ ] Opcional: **modo demo** para que el aviso salga aunque el jurado aprenda con una guía precargada.
+- [x] ~~Opcional: modo demo~~ → secreto `AVISAR_SIEMPRE=1` en Supabase: avisa en cada "¡Aprendí!", no solo en hitos. **Necesita que P2 despliegue la función `api` una vez**; después se prende y apaga solo con el secreto.
 - [ ] Día de la demo: **tener el celular que recibe el "gracias"**, cargado y con el chat abierto; entregarlo al jurado antes de empezar.
 
 ---

@@ -71,6 +71,8 @@ const visible = (e) => !!e && !e.closest('[hidden]');
 const cat = (g) => CATEGORIAS[g.categoria] || { nombre: mayus(g.categoria || 'Guía'), icono: 'book', bg: '#F6EBDA', fg: '#2B1D14' };
 const iconoGuia = (g) => g.icono || cat(g).icono;
 const textoAprendieron = (n) => `${Number(n) || 0} aprendieron`;
+// Nueva: nadie ha aprendido con ella todavía (la de Rosa en la demo parte en 0)
+const esNueva = (g) => !!g.nueva || !Number(g.aprendieron);
 
 function leerLocal(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function guardarLocal(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } }
@@ -146,19 +148,23 @@ const ESTADOS = {
   reposo: 'SABERES le dijo'
 };
 let ultimoTexto = '';   // lo último que dijo SABERES: siempre se puede leer y volver a escuchar
+let lecturaCerrada = false;   // la persona cerró la barra: vuelve a aparecer cuando SABERES hable de nuevo
 
 // La barra de abajo siempre muestra lo último que dijo SABERES y en qué está
 function setEstado(tipo, texto) {
   const barra = $('#subtitulos');
   const sp = $('#estado');
-  if (tipo === 'hablando' && texto) ultimoTexto = texto;
+  if (tipo === 'hablando' && texto) { ultimoTexto = texto; lecturaCerrada = false; }
   const estado = tipo || 'reposo';
   if (!tipo) {
     $('#btn-escuchar-pagina').classList.remove('on');
     $('#btn-escuchar-pagina').setAttribute('aria-pressed', 'false');
     $('#btn-escuchar-joven').classList.remove('on');
   }
-  barra.hidden = !ultimoTexto && estado === 'reposo';
+  // Si la pantalla ya tiene su barra de micrófono, la de voz solo aparece mientras SABERES habla:
+  // así no se apilan dos barras abajo diciendo lo mismo
+  const conBarraVoz = estado !== 'hablando' && [...document.querySelectorAll('.pantalla:not([hidden]) .barra-voz')].some(visible);
+  barra.hidden = lecturaCerrada || conBarraVoz || (!ultimoTexto && estado === 'reposo');
   barra.dataset.estado = estado;
   sp.className = 'speaker ' + (estado === 'hablando' || estado === 'reposo' ? '' : estado);
   sp.innerHTML = estado === 'hablando' ? '<span class="eq"><i></i><i></i><i></i></span>'
@@ -295,10 +301,21 @@ function callar() {
   if ('speechSynthesis' in window) speechSynthesis.cancel();
 }
 
-// Lee en voz alta y SIEMPRE muestra el subtítulo
-function hablar(texto) {
+// Nada se activa solo: por defecto SABERES no habla ni escucha hasta que la persona
+// toca «Escuchar» o el micrófono. Con ?voz=auto vuelve el modo automático (demo).
+const VOZ_AUTO = new URLSearchParams(location.search).get('voz') === 'auto';
+
+// Lee en voz alta y SIEMPRE muestra el subtítulo.
+// Sin VOZ_AUTO solo muestra el texto (con «Escuchar» en la barra); forzar = lo pidió la persona.
+function hablar(texto, { forzar = false } = {}) {
   texto = String(texto ?? '').replace(/\s+/g, ' ').trim();
   if (!texto) return Promise.resolve();
+  if (!VOZ_AUTO && !forzar) {
+    ultimoTexto = texto;
+    lecturaCerrada = false;
+    setEstado(null);
+    return Promise.resolve();
+  }
   setEstado('hablando', texto);
   if (!('speechSynthesis' in window) && !usarVozIA()) return pausa(400 + texto.length * 40).then(() => setEstado(null));
   callar();
@@ -327,8 +344,27 @@ function detenerEscucha() {
   setEstado(null);
 }
 
+// El micrófono solo escucha después de que la persona lo toca (o la barra espaciadora).
+// Si nadie lo ha tocado, la escucha espera ese toque en vez de prenderse sola.
+let ultimoToqueMic = 0;
+let esperandoToqueMic = null;
+document.addEventListener('click', (e) => {
+  if (!e.target.closest || !e.target.closest('.mic, [data-hablar]')) return;
+  ultimoToqueMic = Date.now();
+  if (esperandoToqueMic) { const seguir = esperandoToqueMic; esperandoToqueMic = null; seguir(); }
+}, true);
+function esperarToqueMic() {
+  if (VOZ_AUTO || Date.now() - ultimoToqueMic < 1500) { ultimoToqueMic = 0; return Promise.resolve(); }
+  return new Promise((res) => { esperandoToqueMic = () => { ultimoToqueMic = 0; res(); }; });
+}
+
 // Reconoce una frase (o un relato largo con continuo = true)
-function escuchar({ onParcial = null, continuo = false } = {}) {
+function escuchar(opciones = {}) {
+  if (!micOk) return Promise.reject(new Error('sin-microfono'));
+  return esperarToqueMic().then(() => escucharAhora(opciones));
+}
+
+function escucharAhora({ onParcial = null, continuo = false } = {}) {
   if (!micOk) return Promise.reject(new Error('sin-microfono'));
   callar();
   detenerEscucha();
@@ -410,7 +446,9 @@ function micEstado(boton, estado, etiqueta) {
 
 function mostrarOido(z, titulo, texto, escuchando) {
   const caja = z.querySelector('[data-oido]');
-  caja.hidden = false;
+  // Escuchando sin nada todavía: el micrófono ya dice «La escucho…», no hace falta un recuadro vacío
+  caja.hidden = escuchando && !String(texto).trim();
+  if (caja.hidden) return;
   caja.querySelector('[data-oido-titulo]').textContent = titulo;
   caja.querySelector('[data-oido-texto]').textContent = texto;
   caja.querySelector('[data-caret]').hidden = !escuchando;
@@ -418,6 +456,20 @@ function mostrarOido(z, titulo, texto, escuchando) {
 
 function ocultarOido(z) {
   z.querySelector('[data-oido]').hidden = true;
+}
+
+// Deja la zona de voz como nueva: sin «Usted dijo», micrófono en reposo y campo vacío.
+// Se usa al pasar a otra pregunta, para que no quede a la vista la respuesta anterior.
+function limpiarZona(z) {
+  if (!z) return;
+  detenerEscucha();
+  ocultarOido(z);
+  const mic = z.querySelector('[data-mic]');
+  if (mic) micEstado(mic, 'idle', micOk ? 'Toque el micrófono para hablar' : 'El micrófono no está disponible. Puede escribir aquí abajo.');
+  const campo = z.querySelector('[data-campo]');
+  if (campo) campo.value = '';
+  const controles = z.querySelector('[data-controles]');
+  if (controles) controles.innerHTML = '';
 }
 
 // Pide una respuesta por voz o escrita (las dos opciones a la vista). Resuelve { texto, escrito }
@@ -492,7 +544,8 @@ function pedirRespuesta({ etiqueta = 'O escriba su respuesta', boton = 'Enviar',
       const v = campo.value.trim();
       if (v) fin(v, true); else campo.focus();
     };
-    if (micOk) oir();
+    // Medio segundo antes de escuchar: así no se cuela un «sí» de la pregunta anterior
+    if (micOk && VOZ_AUTO) pausa(500).then(oir);
   });
 }
 
@@ -1044,7 +1097,7 @@ function tarjetaGuia(g, alTocar, joven = false) {
   const b = el(`<button type="button" class="tile ${joven ? 'tile-joven' : 'tile-guia'}">
       <span class="tile-guia-banda" style="background:${c.bg};color:${c.fg}">
         ${icono(iconoGuia(g), joven ? 64 : 72, 1.6)}
-        ${joven && g.nueva ? '<span class="pill" style="position:absolute;top:12px;left:12px;background:#2B1D14;color:#FFF8EE;font-size:14px">Nueva</span>' : ''}
+        ${joven && esNueva(g) ? '<span class="pill" style="position:absolute;top:12px;left:12px;background:#2B1D14;color:#FFF8EE;font-size:14px">Nueva</span>' : ''}
         ${joven ? `<span class="pill" style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,.85);color:#2B1D14;font-size:14px">${esc(c.nombre)}</span>` : ''}
       </span>
       <span class="tile-guia-cuerpo">
@@ -1064,7 +1117,7 @@ function tarjetaGuia(g, alTocar, joven = false) {
 async function flujoBienvenida(g) {
   const guias = (await traerGuias()).filter(x => x.estado !== 'en revisión');
   vigente(g);
-  const orden = guias.slice().sort((a, b) => (b.nueva ? 1 : 0) - (a.nueva ? 1 : 0) || (b.aprendieron || 0) - (a.aprendieron || 0));
+  const orden = guias.slice().sort((a, b) => esNueva(b) - esNueva(a) || (b.aprendieron || 0) - (a.aprendieron || 0));
   const caja = $('#destacadas');
   caja.innerHTML = '';
   orden.slice(0, 4).forEach(guia => caja.append(tarjetaGuia(guia, () => abrir('guia-joven', { guia }))));
@@ -1088,6 +1141,7 @@ async function flujoEntrar(g) {
   let { nombre, clave } = r.escrito ? { nombre: limpiarRespuesta('nombre', r.texto), clave: '' } : separarNombreYClave(r.texto);
   if (!clave) {
     dice.textContent = `Gracias${nombre ? ', ' + primerNombre(nombre) : ''}. ¿Y su palabra clave?`;
+    limpiarZona(zonaActiva());
     await hablar(dice.textContent);
     r = await pedirRespuesta({ etiqueta: 'O escriba su palabra clave', boton: 'Entrar' });
     clave = limpiarRespuesta('clave', r.texto);
@@ -1158,6 +1212,7 @@ async function flujoRegistro(g) {
     estadoRegistro.paso = i;
     const p = PREGUNTAS_REGISTRO[i];
     pintarPregunta(i);
+    limpiarZona(zonaActiva());
     await hablar((i === 0 ? 'Le doy la bienvenida a SABERES. ' : '') + `${p.q} ${p.h}`);
     while (true) {
       const r = await pedirRespuesta({ etiqueta: 'O escriba su respuesta' });
@@ -1168,6 +1223,7 @@ async function flujoRegistro(g) {
       if (z) mostrarOido(z, 'Usted dijo:', valor, false);
       await hablar(p.clave === 'clave' ? 'Anoté su palabra clave. ¿Está bien?' : `Escuché: ${valor}. ¿Está bien?`);
       if (await confirmar({ si: 'Sí, está bien', no: 'Repetir' })) { estadoRegistro.respuestas[p.clave] = valor; break; }
+      limpiarZona(zonaActiva());
       await hablar(`Bueno, de nuevo. ${p.q}`);
     }
   }
@@ -1324,7 +1380,7 @@ function escucharBarraInicio() {
     campo.value = '';
     micEstado(mic, 'idle');
     linea.textContent = micOk ? 'O dígame qué quiere hacer' : 'El micrófono no está disponible. Escriba aquí abajo.';
-    if (micOk) oir();
+    if (micOk && VOZ_AUTO) oir();
   });
 }
 
@@ -1900,7 +1956,7 @@ async function flujoMisGuias(g) {
       <p class="gracia-msg">«${esc(x.mensaje)}»</p>
       <p style="font-size: .85em; font-weight: 700; color: #8E3717">${esc(x.cuando)}</p>
     </article>`).join('') : '<p class="card gracia" style="grid-column: 1 / -1">Cuando alguien aprenda de usted, sus gracias aparecerán aquí.</p>';
-  $('#mg-escuchar').onclick = () => hablar(gracias.length ? textoGracias(gracias) : 'Todavía no hay gracias. Cuando alguien aprenda de usted, le avisaremos.').catch(() => {});
+  $('#mg-escuchar').onclick = () => hablar(gracias.length ? textoGracias(gracias) : 'Todavía no hay gracias. Cuando alguien aprenda de usted, le avisaremos.', { forzar: true }).catch(() => {});
   pintarCelular(gracias);
 
   await hablar(`${total} ${frase}. ¡Gracias por compartir lo que sabe!` + (gracias[0] ? ` ${gracias[0].nombre} aprendió su ${gracias[0].guia} gracias a usted.` : ''));
@@ -1954,8 +2010,8 @@ function pintarListaJovenes() {
     if (filtroCategoria !== 'todas' && guia.categoria !== filtroCategoria) return false;
     const texto = normal([guia.titulo, cat(guia).nombre, guia.autor, guia.comuna, ...(guia.materiales || []), ...(guia.claves || [])].join(' '));
     return palabras.every(p => texto.includes(p));
-  }).sort((a, b) => (b.aprendieron || 0) - (a.aprendieron || 0));
-  $('#j-cuenta').textContent = `${visibles.length === 1 ? '1 guía' : visibles.length + ' guías'} · las más agradecidas primero`;
+  }).sort((a, b) => esNueva(b) - esNueva(a) || (b.aprendieron || 0) - (a.aprendieron || 0));
+  $('#j-cuenta').textContent = `${visibles.length === 1 ? '1 guía' : visibles.length + ' guías'} · las nuevas y las más agradecidas primero`;
   const lista = $('#lista-jovenes');
   lista.innerHTML = '';
   visibles.forEach(guia => lista.append(tarjetaGuia(guia, () => abrir('guia-joven', { guia }), true)));
@@ -2066,12 +2122,69 @@ async function flujoGuiaJoven(g, { guia }) {
     play.setAttribute('aria-label', 'Detener');
     barra.style.transition = `width ${Math.round(texto.length / 13 / velocidadVoz)}s linear`;
     barra.style.width = '100%';
-    await hablar(texto).catch(() => {});
+    await hablar(texto, { forzar: true }).catch(() => {});
     delete play.dataset.sonando;
     play.innerHTML = icono('play', 24);
     play.setAttribute('aria-label', 'Escuchar la guía');
     barra.style.transition = 'none';
     barra.style.width = '0';
+  });
+  pintarPreguntas(guia);
+}
+
+// Bloque «Preguntas» bajo la ficha de la guía: la persona escribe o dice su duda
+// (ej. «¿cómo me conecto al wifi?») y SABERES responde con la guía y la enciclopedia
+function pintarPreguntas(guia) {
+  $('#j2-autor').insertAdjacentHTML('beforeend', `
+    <form id="j2-preguntas" class="preguntas" novalidate>
+      <h2 class="con-icono" style="font-size: 20px; gap: 8px">${icono('chat', 24)}Preguntas</h2>
+      <p style="font-size: 16px">¿Tiene una duda sobre esta guía? Escríbala o dígala con el micrófono.</p>
+      <textarea id="j2-pregunta" rows="3" aria-label="Escriba su pregunta" placeholder="Por ejemplo: ¿cómo me conecto al wifi?"></textarea>
+      <div class="preguntas-botones">
+        <button type="button" class="btn btn-w btn-md" id="j2-hablar" data-hablar>${icono('mic', 24)}<span>Hablar</span></button>
+        <button type="submit" class="btn btn-p btn-md">${icono('send', 24)}<span>Preguntar</span></button>
+      </div>
+      <div id="j2-respuesta" class="preguntas-respuesta" aria-live="polite" hidden></div>
+    </form>`);
+  const form = $('#j2-preguntas'), campo = $('#j2-pregunta'), caja = $('#j2-respuesta'), hablarBtn = $('#j2-hablar');
+
+  async function preguntar() {
+    const texto = campo.value.trim();
+    if (!texto) { campo.focus(); return; }
+    caja.hidden = false;
+    caja.innerHTML = '<p>Un momento, estoy buscando la respuesta…</p>';
+    const r = await pensar(post('/api/ayuda', { guia, paso: '', duda: texto }));
+    const respuesta = r?.texto || 'Disculpe, no pude responder ahora. Inténtelo otra vez en un momento.';
+    caja.innerHTML = `<p class="preguntas-dijo">Usted preguntó: «${esc(texto)}»</p><p>${esc(respuesta)}</p>`;
+    const rel = r?.guiaRelacionada;
+    if (rel) {
+      const ir = el(`<button type="button" class="btn btn-w btn-md">${icono('book', 22)}<span>Ver la guía «${esc(rel.titulo)}»</span></button>`);
+      ir.addEventListener('click', async () => {
+        const otra = (await traerGuias()).find(x => x.id === rel.id);
+        if (otra) abrir('guia-joven', { guia: otra });
+      });
+      caja.append(ir);
+    }
+    campo.value = '';
+    hablar(respuesta, { forzar: true }).catch(() => {});
+  }
+
+  form.addEventListener('submit', (e) => { e.preventDefault(); preguntar(); });
+  // Enter envía; Shift+Enter hace un salto de línea
+  campo.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); preguntar(); } });
+  hablarBtn.addEventListener('click', async () => {
+    if (reconActual) { detenerEscucha(); return; }
+    hablarBtn.querySelector('span').textContent = 'Escuchando… toque para parar';
+    try {
+      campo.value = await escuchar({ onParcial: (t) => { campo.value = t; } });
+      preguntar();
+    } catch (e) {
+      caja.hidden = false;
+      caja.innerHTML = '<p>No alcancé a escucharle. Puede escribir su pregunta en el recuadro.</p>';
+      campo.focus();
+    } finally {
+      hablarBtn.querySelector('span').textContent = 'Hablar';
+    }
   });
 }
 
@@ -2166,7 +2279,7 @@ function pintarExperiencia() {
         <p style="font-size: 17px; background: #FFF8EE; border-radius: 12px; padding: 12px 14px"><strong>Su consejo:</strong> ${esc(l.consejo)}</p>
         <button type="button" class="btn btn-s btn-sm" style="align-self: flex-start; margin-top: auto">${icono('play', 18)}<span>Escuchar · ${esc(l.minutos || '3 min')}</span></button>
       </article>`);
-    card.querySelector('button').addEventListener('click', () => hablar(`${l.titulo}. ${l.autor} cuenta: ${l.resumen} Su consejo: ${l.consejo}`).catch(() => {}));
+    card.querySelector('button').addEventListener('click', () => hablar(`${l.titulo}. ${l.autor} cuenta: ${l.resumen} Su consejo: ${l.consejo}`, { forzar: true }).catch(() => {}));
     lista.append(card);
   });
   if (!lecciones.length) lista.append(el('<p class="card" style="padding: 28px; grid-column: 1 / -1">Todavía no hay historias con esa experiencia.</p>'));
@@ -2180,12 +2293,30 @@ async function flujoExperiencia() {
 /* =========================================================
    Escuchar esta página · tamaño de letra · teclado
    ========================================================= */
+// Todo lo que se ve en la pantalla, en orden y una sola vez: títulos, globos, listas,
+// tarjetas y botones grandes con descripción. Se saltan controles cortos y ayudas.
+const NO_LEER = /^(SABERES le (dice|pregunta)|o presione la barra|La escucho|Escuchando|O escriba)/i;
+
 function textoDePantalla() {
   const sec = document.querySelector('.pantalla:not([hidden])');
   if (!sec) return '';
-  const selector = document.body.dataset.barra === 'joven' ? 'h1, h1 + p, .tile-guia-titulo, .steprow, .bloque, .leccion-card h2' : 'h1, .bubble p:not(.bubble-titulo)';
-  return [...sec.querySelectorAll(selector)]
-    .filter(visible).map(e => e.textContent.trim()).filter(Boolean).join('. ').replace(/\.\./g, '.');
+  const vistos = new Set();
+  const partes = [];
+  for (const e of sec.querySelectorAll('h1, h2, h3, h4, p, li, blockquote, .steprow, button, a')) {
+    if (!visible(e) || !e.getClientRects().length || e.closest('[aria-hidden="true"], label, .speaker-boton')) continue;
+    const esControl = e.matches('button, a');
+    // Un botón o link solo se lee si es una tarjeta con descripción (ej. «Quiero aprender · Le enseño…»)
+    if (esControl && e.innerText.trim().split(/\s+/).length < 5) continue;
+    // Se lee el elemento más externo que tenga el texto; lo de adentro ya va incluido
+    if (!esControl && e.parentElement.closest('li, blockquote, .steprow, button, a') && sec.contains(e.parentElement)) continue;
+    // Cada línea visible (título, descripción) termina en punto: así la voz hace la pausa
+    const t = e.innerText.split(/\n+/).map(s => s.replace(/\s+/g, ' ').trim()).filter(Boolean)
+      .map(s => (/[.!?…:»"]$/.test(s) ? s : s + '.')).join(' ');
+    if (t.length < 3 || NO_LEER.test(t) || vistos.has(t)) continue;
+    vistos.add(t);
+    partes.push(t);
+  }
+  return partes.join(' ');
 }
 
 function alternarLectura() {
@@ -2193,7 +2324,7 @@ function alternarLectura() {
   if (btn.classList.contains('on')) { callar(); setEstado(null); return; }
   const texto = textoDePantalla();
   if (!texto) return;
-  hablar(texto).catch(() => {});
+  hablar(texto, { forzar: true }).catch(() => {});
   btn.classList.add('on');
   btn.setAttribute('aria-pressed', 'true');
 }
@@ -2232,7 +2363,7 @@ function hacerParlantesTocables() {
     b.addEventListener('click', () => {
       const burbuja = b.parentElement.querySelector('.bubble');
       const texto = [...burbuja.querySelectorAll('h1, p:not(.bubble-titulo)')].map(e => e.textContent.trim()).filter(Boolean).join(' ');
-      if (texto) hablar(texto).catch(() => {});
+      if (texto) hablar(texto, { forzar: true }).catch(() => {});
     });
     sp.replaceWith(b);
   });
@@ -2319,12 +2450,13 @@ function init() {
   $('#btn-soy-mayor').addEventListener('click', () => abrir(usuario ? 'inicio' : 'bienvenida'));
   $('#btn-escuchar-pagina').addEventListener('click', alternarLectura);
   $('#btn-detener').addEventListener('click', () => { callar(); setEstado(null); });
-  $('#btn-otra-vez').addEventListener('click', () => { if (ultimoTexto) hablar(ultimoTexto).catch(() => {}); });
+  $('#btn-cerrar-lectura').addEventListener('click', () => { lecturaCerrada = true; callar(); setEstado(null); });
+  $('#btn-otra-vez').addEventListener('click', () => { if (ultimoTexto) hablar(ultimoTexto, { forzar: true }).catch(() => {}); });
   $('#btn-escuchar-joven').addEventListener('click', () => {
     const b = $('#btn-escuchar-joven');
     if (b.classList.contains('on')) { callar(); setEstado(null); return; }
     const t = textoDePantalla();
-    if (t) { hablar(t).catch(() => {}); b.classList.add('on'); }
+    if (t) { hablar(t, { forzar: true }).catch(() => {}); b.classList.add('on'); }
   });
   hacerParlantesTocables();
   document.querySelectorAll('[data-fs]').forEach(b => b.addEventListener('click', () => ponerTamano(Number(b.dataset.fs))));
