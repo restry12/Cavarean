@@ -978,6 +978,7 @@ async function flujoEnsenar(g) {
 
   if (!publicar) {
     if (modoMock && window.MOCK.descartar) window.MOCK.descartar(guia.id);
+    else if (!modoMock) post('/api/descartar', { id: guia.id, usuarioId: usuario.id });
     await hablar('Bueno, grabemos de nuevo. Tómese su tiempo.');
     return flujoEnsenar(g);
   }

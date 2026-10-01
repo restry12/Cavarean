@@ -174,6 +174,19 @@ app.post("/api/ensenar", async (req, res) => {
   res.json(guia);
 });
 
+// "Corregir": la autora descarta la guía recién creada antes de publicarla
+app.post("/api/descartar", (req, res) => {
+  const guias = leer("guias");
+  const i = guias.findIndex((g) => g.id === req.body.id && g.autorId === req.body.usuarioId && !g.aprendieron);
+  if (i < 0) return res.status(404).json({ ok: false, error: "No encontré esa guía." });
+  guias.splice(i, 1);
+  guardar("guias", guias);
+  const usuarios = leer("usuarios");
+  const u = usuarios.find((x) => x.id === req.body.usuarioId);
+  if (u) { u.ensenados = Math.max(0, (Number(u.ensenados) || 0) - 1); guardar("usuarios", usuarios); }
+  res.json({ ok: true });
+});
+
 // ---------- El gracias al autor ----------
 async function enviarZavu(to, texto) {
   // Verificar endpoint y campos en la documentación de Zavu antes de la demo
