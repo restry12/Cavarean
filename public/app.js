@@ -1397,6 +1397,7 @@ function pintarMateriales(guia) {
   const adv = guia.advertencias || [];
   $('#g-num').textContent = 'Antes de empezar';
   pintarPuntos($('#g-puntos'), (guia.pasos || []).length, -1);
+  $('#g-puntos').setAttribute('aria-label', `Antes de empezar: 0 de ${(guia.pasos || []).length} pasos`);
   $('#g-paso').innerHTML = `<span class="paso-num" style="background: #A9461F">${icono('check', 34)}</span>
     <h2 class="paso-titulo">Antes de empezar</h2>
     ${mats.length ? `<p class="paso-cuerpo">Va a necesitar:</p><div class="chips-mats">${mats.map(m => `<span>${esc(m)}</span>`).join('')}</div>` : '<p class="paso-cuerpo">Prepárese: vamos a empezar.</p>'}

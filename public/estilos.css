@@ -7,7 +7,7 @@
 /* ---------- Base ---------- */
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; scroll-padding-top: 190px; scroll-padding-bottom: calc(var(--alto-lectura, 0px) + 150px); }
 body { margin: 0; background: #FFF8EE; }
 
 .sb {
@@ -35,6 +35,8 @@ body { margin: 0; background: #FFF8EE; }
 .sb .dark :focus-visible { outline-color: #FFF8EE; }
 .sb input:focus-visible, .sb textarea:focus-visible { outline: 4px solid #A9461F; outline-offset: 2px; }
 .ico { display: inline-block; flex: none; vertical-align: middle; }
+.saltar { position: absolute; left: 16px; top: -100px; z-index: 200; padding: 14px 22px; border-radius: 14px; background: #2B1D14; color: #FFF8EE !important; font-weight: 700; text-decoration: none; }
+.saltar:focus { top: 16px; outline: 4px solid #E3A72F; outline-offset: 2px; }
 .sr-only { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .flex1 { flex-grow: 1; }
 .con-icono { display: flex; align-items: center; gap: 10px; }
@@ -60,9 +62,27 @@ body { margin: 0; background: #FFF8EE; }
 
 /* ---------- Barras superiores ---------- */
 .topbar { position: sticky; top: 0; z-index: 40; background: #FFF8EE; border-bottom: 2px solid #EFDCC2; }
-.topbar-util { background: #F6EBDA; border-bottom: 1px solid #EAD6BA; }
-.util-fila { display: flex; align-items: center; gap: 16px; min-height: 64px; font-size: 19px; }
-.util-usuario { display: flex; align-items: center; gap: 12px; }
+/* Franja de arriba: origen y herramientas de accesibilidad */
+.topbar-util { background: #2B1D14; color: #FFF8EE; border-bottom: 3px solid #A9461F; }
+.util-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; min-height: 68px; font-size: 19px; padding-top: 8px; padding-bottom: 8px; }
+.util-fila > *, .util-lema span, .util-herramientas > * { white-space: nowrap; }
+.util-herramientas { flex: none; }
+.util-usuario { display: flex; align-items: center; gap: 12px; font-weight: 700; }
+.util-lema { display: flex; align-items: center; gap: 12px; font-weight: 700; letter-spacing: .01em; }
+.util-estrella { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: rgba(227, 167, 47, .16); color: #E3A72F; }
+.util-punto { width: 6px; height: 6px; border-radius: 50%; background: #E3A72F; }
+.util-50 { display: inline-flex; align-items: center; padding: 2px 10px; margin-left: 4px; border-radius: 999px; background: #E3A72F; color: #2B1D14; font-weight: 700; }
+.util-herramientas { display: flex; align-items: center; gap: 12px; padding: 6px 6px 6px 18px; border-radius: 999px; background: rgba(255, 248, 238, .07); border: 1px solid rgba(255, 248, 238, .22); }
+.util-etiqueta { font-weight: 700; font-size: 17px; }
+.topbar-util .fsbox { border-color: #FFF8EE; background: transparent; border-radius: 14px; }
+.sb .topbar-util .fsbtn { color: #FFF8EE; min-width: 52px; }
+.sb .topbar-util .fsbtn + .fsbtn { border-left-color: rgba(255, 248, 238, .5); }
+.sb .topbar-util .fsbtn:hover { background: rgba(255, 248, 238, .14); }
+.sb .topbar-util .fsbtn.on { background: #FFF8EE; color: #2B1D14; }
+.sb .listen.listen-oro { background: #E3A72F; color: #2B1D14; border-color: #E3A72F; border-radius: 999px; min-height: 48px; }
+.sb .listen.listen-oro:hover { background: #F0BC52; }
+.sb .listen.listen-oro.on { background: #FFF8EE; color: #2B1D14; border-color: #FFF8EE; }
+.aviso-mock { position: fixed; left: 16px; bottom: 70px; z-index: 90; background: #FFF1D6; color: #4A3200; box-shadow: 0 6px 16px -8px rgba(43, 29, 20, .5); }
 .barra-principal { display: flex; align-items: center; gap: 12px; min-height: 92px; font-size: 22px; flex-wrap: wrap; }
 .sb .marca { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 0 8px; border-radius: 14px; }
 .marca-nombre { font-size: 28px; font-weight: 700; letter-spacing: .06em; }
@@ -380,8 +400,8 @@ body[data-barra="joven"] .lectura { font-size: 20px; }
 .demo-overlay { position: fixed; inset: 0; z-index: 100; background: rgba(43, 29, 20, .6); display: flex; align-items: flex-start; justify-content: center; padding: 40px 20px; overflow: auto; }
 .sb .demo-item { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 0 14px; border-radius: 10px; font-weight: 700; font-size: 16px; transition: 200ms; cursor: pointer; color: #2B1D14; font-family: inherit; text-align: left; }
 .sb .demo-item:hover { background: #F8E6CF; }
-.sb .demo-fab { position: fixed; left: 16px; bottom: 16px; z-index: 90; min-height: 44px; padding: 0 14px; border-radius: 12px; background: #2B1D14; color: #FFF8EE; font-weight: 700; font-size: 14px; opacity: .35; transition: opacity 300ms; cursor: pointer; font-family: inherit; }
-.sb .demo-fab:hover, .sb .demo-fab:focus-visible { opacity: 1; }
+.sb .demo-fab { position: fixed; left: 16px; bottom: 16px; z-index: 90; min-height: 44px; padding: 0 14px; border-radius: 12px; background: #2B1D14; color: #FFF8EE; border: 2px solid #FFF8EE; font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit; box-shadow: 0 6px 16px -8px rgba(43, 29, 20, .6); }
+.sb .demo-fab:hover { background: #3D2A1E; }
 
 /* ---------- Pantallas medianas y celular ---------- */
 @media (max-width: 1100px) {
@@ -394,6 +414,21 @@ body[data-barra="joven"] .lectura { font-size: 20px; }
   .banda-jovenes { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 760px) {
+  .hide-m { display: none !important; }
+  /* En celular la barra de arriba no queda fija: así nunca tapa el contenido ni el foco */
+  .topbar { position: static; }
+  html { scroll-padding-top: 16px; }
+  .util-herramientas { flex: 1 1 100%; flex-wrap: wrap; justify-content: space-between; padding: 8px 8px 8px 14px; gap: 8px; border-radius: 20px; }
+  .sb .topbar-util .fsbtn { min-width: 48px; }
+  .sb .listen.listen-oro { padding: 0 16px; }
+  /* Las barras de abajo no tapan media pantalla en el celular */
+  .barra-voz { position: static; }
+  .lectura-fila { min-height: 0; padding-top: 10px; padding-bottom: 10px; gap: 10px; flex-wrap: nowrap; align-items: flex-start; }
+  .lectura .speaker { width: 40px; height: 40px; }
+  .subtitulo { font-size: 18px; }
+  .lectura-titulo { font-size: 14px; }
+  .sb .lectura .btn { min-height: 48px; padding: 0 12px; font-size: 15px; }
+  .sb .lectura .btn .ico { width: 18px; height: 18px; }
   .g2, .g3, .g4, .g5 { grid-template-columns: minmax(0, 1fr); }
   .sb .btn { min-width: 0; width: 100%; }
   .wrap { padding-left: 16px; padding-right: 16px; }
@@ -409,7 +444,6 @@ body[data-barra="joven"] .lectura { font-size: 20px; }
   .celular, .celular-bloqueo { transform: scale(.85); transform-origin: top center; }
   .icono-grande { width: 160px; height: 160px; }
   .j-buscar { flex-direction: column; }
-  .lectura-fila { flex-wrap: wrap; }
   .dice { gap: 12px; }
   .speaker { width: 48px; height: 48px; }
   .paso-cuerpo-grande { font-size: 32px; }
