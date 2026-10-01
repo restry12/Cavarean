@@ -17,7 +17,7 @@ const env = (k) => (globalThis.Deno ? Deno.env.get(k) : process.env[k]);
 function proveedores() {
   return [
     { nombre: "mistral", url: "https://api.mistral.ai/v1/chat/completions",
-      key: env("MISTRAL_API_KEY"), model: env("MISTRAL_MODEL") || "mistral-small-latest" },
+      key: env("MISTRAL_API_KEY"), model: env("MISTRAL_MODEL") || "mistral-medium-2604" },
     { nombre: "openrouter", url: "https://openrouter.ai/api/v1/chat/completions",
       key: env("OPENROUTER_API_KEY"), model: env("OPENROUTER_MODEL") || "google/gemini-2.0-flash-001" },
   ].filter((p) => p.key);
