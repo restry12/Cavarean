@@ -54,14 +54,12 @@
 
 ## 🔌 P3 – Integraciones
 
-- [ ] **Dejar funcionando WhatsApp con Zavu** y probarlo con un envío real:
-  - Llave `zv_test_`: el celular de `NUMERO_DEMO` inscrito como miembro del equipo en Zavu.
-  - Llave `zv_live_`: requiere WhatsApp Business; el celular debe escribir primero al número de Zavu (ventana de 24 h).
+- [x] ~~Dejar funcionando WhatsApp con Zavu~~ → **probado con envío real** desde `avisos.js` con la llave `zv_test_`: Zavu lo marca `delivered` en el celular de `NUMERO_DEMO`. Falta solo que esos mismos secretos estén en Supabase (tarea de P2 arriba) para que salga desde la app.
 - [ ] **Plan B: Telegram** configurado (`@BotFather` → `/newbot` → escribirle al bot → `chat.id` en `getUpdates`). Ojo: el canal de Zavu ahora es solo WhatsApp, así que el plan B del plan (`ZAVU_CANAL=sms`) ya no aplica.
-- [ ] **Hacer el repo público** (hoy GitHub responde 404) antes de las 16:45, sin el `.env`.
+- [ ] **Hacer el repo público** (hoy GitHub responde 404) antes de las 16:45, sin el `.env`. *Revisado: ningún commit tiene `.env` ni llaves (Zavu, OpenRouter, Telegram, Mistral, JWT), se puede abrir.*
 - [ ] **Prueba de punta a punta:** registro → enseñar → jurado aprende la guía nueva → llega el WhatsApp.
 - [ ] **Grabar el video de respaldo** de la demo completa (15:30).
-- [ ] Opcional: **modo demo** para que el aviso salga aunque el jurado aprenda con una guía precargada.
+- [x] ~~Opcional: modo demo~~ → secreto `AVISAR_SIEMPRE=1` en Supabase: avisa en cada "¡Aprendí!", no solo en hitos. **Necesita que P2 despliegue la función `api` una vez**; después se prende y apaga solo con el secreto.
 - [ ] Día de la demo: **tener el celular que recibe el "gracias"**, cargado y con el chat abierto; entregarlo al jurado antes de empezar.
 
 ---

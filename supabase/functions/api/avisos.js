@@ -60,11 +60,15 @@ async function enviarTelegram(_to, texto) {
 
 const CANALES = { zavu: enviarZavu, telegram: enviarTelegram };
 
+// Modo demo: con AVISAR_SIEMPRE=1 (secreto en Supabase) se avisa en cada
+// "¡Aprendí!", aunque el jurado elija una guía precargada que no está en hito.
+const avisarSiempre = () => env("AVISAR_SIEMPRE") === "1";
+
 // aprendieron: total ya incrementado. Si no viene, se envía igual.
 // Devuelve { ok, enviado, canal?, texto?, id?, motivo?, errores[] }
 export async function avisarGracias({ telefono, autor, titulo, aprendiz, aprendieron, nota } = {}) {
   const n = Number(aprendieron);
-  if (Number.isFinite(n) && n > 0 && !esHito(n)) {
+  if (Number.isFinite(n) && n > 0 && !esHito(n) && !avisarSiempre()) {
     return { ok: true, enviado: false, motivo: `${n} no es un hito`, errores: [] };
   }
   const texto = textoGracias({ autor, titulo, aprendiz, aprendieron: n, nota });
