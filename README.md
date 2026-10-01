@@ -31,9 +31,9 @@ Todo se usa **hablando**, incluso el registro.
 
 | Parte | Qué hace |
 |---|---|
-| **🗣️ Registro por voz** | La app pregunta nombre, comuna, qué quiere aprender, qué sabe enseñar y una palabra clave. La IA arma el perfil sin que la persona teclee nada. |
+| **🗣️ Registro por voz** | La app pregunta nombre, comuna, a qué se dedicó, qué soñaba, qué sabe enseñar y una palabra clave, y arma el perfil sin que la persona teclee nada. |
 | **🎓 Aprendo** | La persona pide una guía hablando y la IA la da **paso a paso**: espera a que diga *"listo"* y entiende *"repita"*, *"más lento"* y *"no entendí"*. |
-| **🎙️ Enseño** | La persona explica algo como si se lo contara a un nieto, y la IA lo convierte en una **guía ordenada** (materiales, pasos, consejos y advertencias) que se publica con su nombre. |
+| **🎙️ Enseño** | La persona explica algo hablando o escribiendo, como si se lo contara a un nieto, y la IA lo convierte en una **guía ordenada** (materiales, pasos, consejos y advertencias) que se publica con su nombre. Si el dictado tiene errores o muletillas, la IA los corrige en silencio. |
 | **🤝 Conecto** | Los jóvenes buscan guías y aprenden de quien sabe. Al terminar dan las gracias y **al autor le llega un WhatsApp**: *"Tomás aprendió su pan amasado gracias a usted"*. |
 
 **Por qué es preventiva:** da **propósito**, mantiene la **mente activa**, crea **vínculos entre generaciones** y aumenta la **autonomía**.
@@ -54,27 +54,34 @@ Todo se usa **hablando**, incluso el registro.
 ## 🏗️ Arquitectura
 
 ```
-[Vista personas mayores]  ─┐
-  voz + botones gigantes   │
-                           ├──HTTP──►  [Backend Node/Express]  ──►  Mistral (principal)
-[Vista jóvenes]           ─┘             /api/registro               guía, editor y búsqueda
-  buscar, aprender, gracias              /api/entrar           ──►  OpenRouter (respaldo)
-                                         /api/ensenar                si Mistral falla
-                                         /api/buscar           ──►  Zavu / Telegram
-                                         /api/ayuda                  el "gracias" al autor
-                                         /api/aprendi
-                                         /api/guias
-                                              │
-                                        data/usuarios.json · data/guias.json
+[Vista personas mayores]  ─┐                       Supabase
+  voz + botones gigantes   │              ┌───────────────────────────────┐
+                           ├─ /api/* ──►  │ Edge Function "api"           │ ──► Mistral Medium (IA)
+[Vista jóvenes]           ─┘  (server.js  │  registro · entrar · guias    │      solo ordena y explica
+  buscar, aprender, gracias    reenvía)   │  buscar · ayuda · ensenar     │ ──► OpenRouter (respaldo)
+                                          │  descartar · aprendi          │
+                                          │            │                  │ ──► Zavu: WhatsApp al autor
+                                          │  Postgres: usuarios · guias   │      (Telegram de respaldo)
+                                          └───────────────────────────────┘
 ```
 
 | Componente | Tecnología |
 |---|---|
 | Frontend | HTML, CSS y JavaScript; Web Speech API (voz a texto y texto a voz) |
-| Backend | Node.js 20 + Express |
-| IA | **Mistral** (`mistral-small-latest`), con respaldo automático en **OpenRouter** |
-| Mensajería | **Zavu** (WhatsApp o SMS) y Telegram como respaldo |
-| Datos | Archivos JSON (prototipo) |
+| Backend | **Supabase Edge Function** (Deno) en `supabase/functions/api` |
+| Datos | **Supabase Postgres**: tablas `usuarios` y `guias`, con RLS (solo la función entra) |
+| IA | **Mistral Medium 3.5** (`mistral-medium-2604`), con respaldo automático en **OpenRouter** |
+| Mensajería | **Zavu** (WhatsApp) y Telegram como respaldo; solo en hitos (1, 10, 50, 100…) |
+| Servidor local | `server.js` (Express): sirve la página y reenvía `/api/*` a Supabase |
+
+### La IA hace solo dos cosas
+
+| Ruta | Qué hace la IA |
+|---|---|
+| `/api/ensenar` | **Ordena** el relato (voz o texto) en una guía. Corrige errores del dictado y muletillas sin avisar, no inventa pasos, cantidades ni consejos, y marca los temas delicados para revisión. |
+| `/api/ayuda` | **Explica** un paso cuando alguien dice "no entendí" o pregunta algo, usando **solo** la guía guardada en la base. |
+
+Registro, entrar, buscar y "¡Aprendí!" funcionan sin IA. Si la IA falla, cada ruta tiene un respaldo, y si el backend no responde en 10 s, la página pasa al modo simulado (`mock.js`).
 
 ---
 
@@ -83,40 +90,46 @@ Todo se usa **hablando**, incluso el registro.
 ### Requisitos
 - Node.js 20 o superior
 - Google Chrome (para voz y reconocimiento de voz)
-- Llaves de API de Mistral, OpenRouter y Zavu (Telegram opcional)
 
-### Instalación
+### Ejecutar
 
 ```bash
 git clone https://github.com/restry12/Caravean.git
 cd Caravean
 npm install
-```
-
-### Variables de entorno
-
-Crea un archivo `.env` en la raíz (**no lo subas al repositorio**):
-
-```env
-MISTRAL_API_KEY=tu_llave
-OPENROUTER_API_KEY=tu_llave
-OPENROUTER_MODEL=google/gemini-2.0-flash-001
-ZAVUDEV_API_KEY=tu_llave
-ZAVU_CANAL=whatsapp          # o sms
-NUMERO_DEMO=+569XXXXXXXX
-TELEGRAM_TOKEN=tu_token
-TELEGRAM_CHAT_ID=tu_chat_id
-AVISO=zavu                   # o telegram
-```
-
-### Ejecutar
-
-```bash
-node server.js
+npm start
 ```
 
 Abre **http://localhost:3000** en Chrome y toca "Empezar" (el navegador necesita un clic para permitir el audio).
-Para probar sin backend ni llaves, usa el **modo simulado**: **http://localhost:3000/?mock=1**
+El backend ya está en Supabase: **no hace falta configurar llaves para probar**. Cuenta de demo: **Rosa**, palabra clave **clavel**.
+
+> Hay que entrar por `npm start`: si se abre `index.html` directo, la página no llega al backend y usa el modo simulado.
+> Para probar sin backend: **http://localhost:3000/?mock=1**
+
+### Llaves (solo en Supabase)
+
+Las llaves van en **Supabase → Edge Functions → Secrets**, nunca en el repo:
+
+| Secreto | Para qué |
+|---|---|
+| `MISTRAL_API_KEY` | La IA (ordenar y explicar) |
+| `OPENROUTER_API_KEY` | Respaldo de la IA (opcional) |
+| `ZAVUDEV_API_KEY`, `NUMERO_DEMO` | El WhatsApp de "gracias" |
+| `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID` | Respaldo del aviso (opcional) |
+
+En local, `.env` (copia de `.env.example`) solo se usa para `npm run probar-ia`.
+
+### Herramientas para el equipo
+
+```bash
+npm run probar-ia   # prueba los prompts de la IA contra Mistral real
+```
+
+Para dejar la demo como al principio, en el SQL Editor de Supabase:
+
+```sql
+select public.reiniciar_demo();
+```
 
 ---
 
@@ -124,18 +137,23 @@ Para probar sin backend ni llaves, usa el **modo simulado**: **http://localhost:
 
 ```
 Caravean/
-├─ server.js            # backend: registro, guías, IA con respaldo, avisos
-├─ .env                 # llaves (no se sube)
-├─ data/
-│  ├─ usuarios.json     # perfiles creados por voz
-│  └─ guias.json        # guías publicadas (5 precargadas)
-└─ public/
-   ├─ index.html        # vistas para personas mayores y jóvenes
-   ├─ estilos.css
-   ├─ app.js            # pantallas, registro por voz, guía paso a paso, enseñar
-   ├─ voz.js            # hablar, escuchar, confirmar, grabar
-   ├─ mock.js           # modo simulado para desarrollo y demo
-   └─ demo.json         # respuestas de respaldo
+├─ server.js                    # sirve la página y reenvía /api/* a Supabase
+├─ public/
+│  ├─ index.html                # vistas para personas mayores y jóvenes
+│  ├─ estilos.css
+│  ├─ app.js                    # pantallas, voz, registro, guía paso a paso, enseñar
+│  ├─ dibujos.js                # íconos, retratos e ilustraciones
+│  └─ mock.js                   # modo simulado (respaldo si el backend no responde)
+├─ supabase/
+│  ├─ functions/api/
+│  │  ├─ index.ts               # rutas /api/*
+│  │  ├─ ia.js                  # IA: ordenar y explicar (Mistral + OpenRouter)
+│  │  └─ avisos.js              # "gracias" por WhatsApp en hitos (Zavu + Telegram)
+│  ├─ migrations/               # tablas, funciones y RLS
+│  └─ seed.sql                  # 5 guías precargadas y la cuenta de Rosa
+└─ scripts/
+   ├─ probar-ia.js              # pruebas de los prompts
+   └─ guias-ejemplo.json
 ```
 
 ---
@@ -149,10 +167,12 @@ Caravean/
 
 ## 🔒 Seguridad
 
-- La IA **no inventa pasos**: ordena lo que la persona dijo.
+- La IA **no inventa pasos**: ordena lo que la persona dijo. Si un paso trae un número que la persona no dijo, se descarta.
+- Ninguna guía puede llevar **teléfonos ni links** (el formato típico de las estafas), aunque vengan en el relato.
 - Las guías sobre temas delicados (electricidad, gas, salud, remedios) llevan advertencias y quedan **en revisión** antes de publicarse.
 - Registro con nombre y palabra clave en el prototipo; la versión real sumaría verificación por celular.
-- Respaldo automático: si Mistral falla responde OpenRouter, y si no hay red la demo usa `demo.json`.
+- Las palabras clave nunca llegan al navegador por la API pública: las tablas tienen RLS y solo la Edge Function entra.
+- Respaldo automático: si Mistral falla responde OpenRouter; si no hay IA, cada ruta tiene un respaldo; y si el backend no responde, la página usa `mock.js`.
 
 > ⚠️ Prototipo de hackatón con datos y autores ficticios.
 
