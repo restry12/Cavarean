@@ -25,14 +25,11 @@ avisarGracias({
 
 Devuelve `{ ok, enviado, canal?, texto?, id?, motivo?, errores[] }`.
 
-## Canales
+## Canal: WhatsApp por Zavu
 
-1. Canal principal según `AVISO`: `telegram` (por defecto) o `zavu`.
-2. Si falla, prueba el otro.
-3. Si ninguno funciona, queda en consola.
-
-- **Zavu**: `POST https://api.zavu.dev/v1/messages`, `Authorization: Bearer ZAVUDEV_API_KEY`, a `telefono` del autor o `NUMERO_DEMO`.
-- **Telegram**: `TELEGRAM_TOKEN` y `TELEGRAM_CHAT_ID`.
+1. **WhatsApp a través de Zavu**: `POST https://api.zavu.dev/v1/messages` con `channel: "whatsapp"` y `Authorization: Bearer ZAVUDEV_API_KEY`, al `telefono` del autor o a `NUMERO_DEMO`.
+2. Si Zavu falla, **Telegram** de respaldo (`TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID`), si está configurado.
+3. Si nada funciona, queda en consola.
 
 Las variables van como secretos de la Edge Function (Supabase → Edge Functions → Secrets). Ver `.env.example`.
 

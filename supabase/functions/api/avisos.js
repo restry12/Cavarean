@@ -2,8 +2,8 @@
 // SABERES · Avisos al autor (P3 – Integraciones)
 // El "gracias" llega solo en hitos (la primera persona, 10, 50, 100 y luego
 // cada 100) para no saturar a la persona con un mensaje por cada aprendiz.
-// Canal principal según AVISO (zavu | telegram); si falla, prueba el otro y,
-// si nada funciona, lo deja en consola. Nunca lanza errores.
+// Se envía por WhatsApp a través de Zavu. Si falla, Telegram de respaldo y,
+// si nada funciona, queda en consola. Nunca lanza errores.
 // Funciona en Deno (Edge Function) y en Node (pruebas locales).
 // =========================================================
 const env = (k) => (globalThis.Deno ? Deno.env.get(k) : process.env[k]);
@@ -33,12 +33,10 @@ async function enviarZavu(to, texto) {
   const llave = env("ZAVUDEV_API_KEY");
   if (!llave) throw new Error("falta ZAVUDEV_API_KEY");
   if (!to) throw new Error("no hay teléfono ni NUMERO_DEMO");
-  // Las llaves zv_test_ solo permiten WhatsApp
-  const channel = env("ZAVU_CANAL") || "whatsapp";
   const r = await fetch("https://api.zavu.dev/v1/messages", {
     method: "POST",
     headers: { Authorization: `Bearer ${llave}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ to, text: texto, channel }),
+    body: JSON.stringify({ to, text: texto, channel: "whatsapp" }),
     signal: AbortSignal.timeout(TIEMPO_MAXIMO),
   });
   const datos = await r.json().catch(() => ({}));
@@ -71,11 +69,9 @@ export async function avisarGracias({ telefono, autor, titulo, aprendiz, aprendi
   }
   const texto = textoGracias({ autor, titulo, aprendiz, aprendieron: n, nota });
   const to = telefono || env("NUMERO_DEMO") || "";
-  const principal = env("AVISO") === "zavu" ? "zavu" : "telegram";
-  const orden = principal === "zavu" ? ["zavu", "telegram"] : ["telegram", "zavu"];
   const errores = [];
 
-  for (const canal of orden) {
+  for (const canal of ["zavu", "telegram"]) {
     try {
       const id = await CANALES[canal](to, texto);
       console.info(`[aviso] enviado por ${canal}: ${texto}`);
