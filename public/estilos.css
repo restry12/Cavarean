@@ -390,7 +390,17 @@ textarea.field { resize: vertical; line-height: 1.4; }
 .lectura-fila { display: flex; align-items: center; gap: 20px; min-height: 104px; padding-top: 16px; padding-bottom: 16px; }
 .lectura-titulo { font-size: .8em; font-weight: 700; color: #E3A72F; }
 .lectura .btn { white-space: nowrap; flex: none; }
-.subtitulo { margin-top: 4px; }
+.subtitulo { margin-top: 4px; max-height: 4.6em; overflow-y: auto; }
+.lectura-cerrar { flex: none; width: 52px; height: 52px; border-radius: 50%; background: transparent; color: #FFF8EE; border: 2px solid rgba(255, 248, 238, .55); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+.lectura-cerrar:hover { background: rgba(255, 248, 238, .14); }
+.lectura-cerrar:focus-visible { outline: 3px solid #E3A72F; outline-offset: 3px; }
+/* Bloque «Preguntas» en la guía */
+.preguntas { background: #FFF8EE; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.preguntas textarea { width: 100%; font: inherit; font-size: 18px; line-height: 1.4; padding: 12px 14px; border: 2px solid #E6D3BC; border-radius: 12px; background: #FFFFFF; color: #2B1D14; resize: vertical; min-height: 84px; }
+.preguntas textarea:focus-visible { outline: 3px solid #A9461F; outline-offset: 2px; }
+.preguntas-botones { display: flex; gap: 10px; flex-wrap: wrap; }
+.preguntas-respuesta { background: #FFFFFF; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; font-size: 18px; border-left: 4px solid #3F5A24; }
+.preguntas-dijo { font-size: 15px; font-weight: 700; color: #8E3717; }
 .sb .lectura .speaker.pensando { background: #3F5A24; }
 .sb .lectura .speaker.escuchando { background: #FFF8EE; color: #A9461F; }
 .lectura[data-estado="reposo"] .lectura-titulo { color: #F1D9BC; }
