@@ -5,7 +5,7 @@
 // La IA se usa solo en /ensenar (ordenar) y /ayuda (explicar).
 // =========================================================
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { ordenarGuia, explicarPaso, tipoNombre } from "./ia.js";
+import { ordenarGuia, explicarPaso, responderPregunta, tipoNombre } from "./ia.js";
 import { avisarGracias } from "./avisos.js";
 import { hayVoz, sintetizar } from "./voz.js";
 
@@ -96,13 +96,19 @@ async function entrar({ nombre, clave }: any) {
 const VACIAS = new Set(["quiero", "aprender", "como", "hacer", "para", "una", "uno", "las", "los", "del", "que",
   "por", "favor", "gustaria", "saber", "ensename", "ensenar", "necesito", "algo", "sobre", "mas", "menos"]);
 
+const palabrasDe = (texto: string) => norm(texto).split(" ").filter((w) => w.length > 2 && !VACIAS.has(w));
+// deno-lint-ignore no-explicit-any
+const puntaje = (palabras: string[], g: any) => {
+  const t = norm([g.titulo, g.categoria, ...(g.claves || [])].join(" "));
+  return palabras.reduce((s, w) => s + (t.includes(w) || t.includes(w.slice(0, -1)) ? 1 : 0), 0);
+};
+
 async function buscar({ pregunta = "" }: any) {
-  const palabras = norm(pregunta).split(" ").filter((w) => w.length > 2 && !VACIAS.has(w));
-  let mejor = null, puntaje = 0;
+  const palabras = palabrasDe(pregunta);
+  let mejor = null, max = 0;
   for (const g of await leerGuias(true)) {
-    const t = norm([g.titulo, g.categoria, ...(g.claves || [])].join(" "));
-    const p = palabras.reduce((s, w) => s + (t.includes(w) || t.includes(w.slice(0, -1)) ? 1 : 0), 0);
-    if (p > puntaje) { mejor = g; puntaje = p; }
+    const p = puntaje(palabras, g);
+    if (p > max) { mejor = g; max = p; }
   }
   return json(mejor || { error: "Todavía no tengo una guía sobre eso." });
 }
@@ -114,6 +120,8 @@ async function ayuda(body: any) {
   // nunca la que manda el navegador. Si no está, no se llama a la IA.
   const { data } = await db.from("guias").select(COLUMNAS_GUIA).eq("id", body.guia?.id ?? "").maybeSingle();
   const guia = data ? aGuia(data) : null;
+  // Sin paso: es una pregunta del bloque "Preguntas" de la guía
+  if (!String(paso).trim()) return pregunta(guia, String(duda).trim().slice(0, 500));
   const i = guia ? guia.pasos.indexOf(paso) : -1;
   const ayudaBase = i >= 0 ? guia.ayudas?.[i] : null;
   try {
@@ -125,6 +133,32 @@ async function ayuda(body: any) {
       : String(paso).startsWith("Materiales") ? "No se preocupe si le falta algo. Puede reemplazarlo por algo parecido que tenga en casa."
       : `No se preocupe, vamos de a poco. Lo importante de este paso es esto: ${paso} Hágalo con calma; no hay apuro.`;
     return json({ texto });
+  }
+}
+
+// deno-lint-ignore no-explicit-any
+async function pregunta(guia: any, duda: string) {
+  if (!duda) return json({ error: "¿Cuál es su pregunta?" }, 400);
+  // Hasta 2 guías de la enciclopedia que tengan que ver con la duda
+  const palabras = palabrasDe(duda);
+  const relacionadas = (await leerGuias(true))
+    .filter((g) => g.id !== guia?.id)
+    .map((g) => ({ g, p: puntaje(palabras, g) })).filter((x) => x.p > 0)
+    .sort((a, b) => b.p - a.p).slice(0, 2).map((x) => x.g);
+  const enlace = (id: string | null) => {
+    const g = relacionadas.find((x) => x.id === id);
+    return g ? { id: g.id, titulo: g.titulo, autor: g.autor } : null;
+  };
+  try {
+    if (!guia) throw new Error("guía no está en la base");
+    const r = await responderPregunta({ guia, pregunta: duda, relacionadas });
+    return json({ texto: r.texto, guiaRelacionada: enlace(r.fuente) });
+  } catch (e) {
+    console.warn("[pregunta] sin IA:", (e as Error).message);
+    const g = relacionadas[0];
+    return json(g
+      ? { texto: `Eso lo explica la guía «${g.titulo}», de ${g.autor}. Puede abrirla aquí abajo.`, guiaRelacionada: enlace(g.id) }
+      : { texto: "Todavía no tengo esa respuesta en SABERES. Pruebe con calma siguiendo los pasos, o pídale ayuda a alguien de confianza." });
   }
 }
 

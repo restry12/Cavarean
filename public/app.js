@@ -117,19 +117,20 @@ const ESTADOS = {
   reposo: 'SABERES le dijo'
 };
 let ultimoTexto = '';   // lo último que dijo SABERES: siempre se puede leer y volver a escuchar
+let lecturaCerrada = false;   // la persona cerró la barra: vuelve a aparecer cuando SABERES hable de nuevo
 
 // La barra de abajo siempre muestra lo último que dijo SABERES y en qué está
 function setEstado(tipo, texto) {
   const barra = $('#subtitulos');
   const sp = $('#estado');
-  if (tipo === 'hablando' && texto) ultimoTexto = texto;
+  if (tipo === 'hablando' && texto) { ultimoTexto = texto; lecturaCerrada = false; }
   const estado = tipo || 'reposo';
   if (!tipo) {
     $('#btn-escuchar-pagina').classList.remove('on');
     $('#btn-escuchar-pagina').setAttribute('aria-pressed', 'false');
     $('#btn-escuchar-joven').classList.remove('on');
   }
-  barra.hidden = !ultimoTexto && estado === 'reposo';
+  barra.hidden = lecturaCerrada || (!ultimoTexto && estado === 'reposo');
   barra.dataset.estado = estado;
   sp.className = 'speaker ' + (estado === 'hablando' || estado === 'reposo' ? '' : estado);
   sp.innerHTML = estado === 'hablando' ? '<span class="eq"><i></i><i></i><i></i></span>'
@@ -391,6 +392,20 @@ function ocultarOido(z) {
   z.querySelector('[data-oido]').hidden = true;
 }
 
+// Deja la zona de voz como nueva: sin «Usted dijo», micrófono en reposo y campo vacío.
+// Se usa al pasar a otra pregunta, para que no quede a la vista la respuesta anterior.
+function limpiarZona(z) {
+  if (!z) return;
+  detenerEscucha();
+  ocultarOido(z);
+  const mic = z.querySelector('[data-mic]');
+  if (mic) micEstado(mic, 'idle', micOk ? 'Toque el micrófono para hablar' : 'El micrófono no está disponible. Puede escribir aquí abajo.');
+  const campo = z.querySelector('[data-campo]');
+  if (campo) campo.value = '';
+  const controles = z.querySelector('[data-controles]');
+  if (controles) controles.innerHTML = '';
+}
+
 // Pide una respuesta por voz o escrita (las dos opciones a la vista). Resuelve { texto, escrito }
 function pedirRespuesta({ etiqueta = 'O escriba su respuesta', boton = 'Enviar', continuo = false } = {}) {
   const z = zonaActiva();
@@ -463,7 +478,8 @@ function pedirRespuesta({ etiqueta = 'O escriba su respuesta', boton = 'Enviar',
       const v = campo.value.trim();
       if (v) fin(v, true); else campo.focus();
     };
-    if (micOk) oir();
+    // Medio segundo antes de escuchar: así no se cuela un «sí» de la pregunta anterior
+    if (micOk) pausa(500).then(oir);
   });
 }
 
@@ -1011,6 +1027,7 @@ async function flujoEntrar(g) {
   let { nombre, clave } = r.escrito ? { nombre: limpiarRespuesta('nombre', r.texto), clave: '' } : separarNombreYClave(r.texto);
   if (!clave) {
     dice.textContent = `Gracias${nombre ? ', ' + primerNombre(nombre) : ''}. ¿Y su palabra clave?`;
+    limpiarZona(zonaActiva());
     await hablar(dice.textContent);
     r = await pedirRespuesta({ etiqueta: 'O escriba su palabra clave', boton: 'Entrar' });
     clave = limpiarRespuesta('clave', r.texto);
@@ -1081,6 +1098,7 @@ async function flujoRegistro(g) {
     estadoRegistro.paso = i;
     const p = PREGUNTAS_REGISTRO[i];
     pintarPregunta(i);
+    limpiarZona(zonaActiva());
     await hablar((i === 0 ? 'Le doy la bienvenida a SABERES. ' : '') + `${p.q} ${p.h}`);
     while (true) {
       const r = await pedirRespuesta({ etiqueta: 'O escriba su respuesta' });
@@ -1091,6 +1109,7 @@ async function flujoRegistro(g) {
       if (z) mostrarOido(z, 'Usted dijo:', valor, false);
       await hablar(p.clave === 'clave' ? 'Anoté su palabra clave. ¿Está bien?' : `Escuché: ${valor}. ¿Está bien?`);
       if (await confirmar({ si: 'Sí, está bien', no: 'Repetir' })) { estadoRegistro.respuestas[p.clave] = valor; break; }
+      limpiarZona(zonaActiva());
       await hablar(`Bueno, de nuevo. ${p.q}`);
     }
   }
@@ -1956,6 +1975,63 @@ async function flujoGuiaJoven(g, { guia }) {
     barra.style.transition = 'none';
     barra.style.width = '0';
   });
+  pintarPreguntas(guia);
+}
+
+// Bloque «Preguntas» bajo la ficha de la guía: la persona escribe o dice su duda
+// (ej. «¿cómo me conecto al wifi?») y SABERES responde con la guía y la enciclopedia
+function pintarPreguntas(guia) {
+  $('#j2-autor').insertAdjacentHTML('beforeend', `
+    <form id="j2-preguntas" class="preguntas" novalidate>
+      <h2 class="con-icono" style="font-size: 20px; gap: 8px">${icono('chat', 24)}Preguntas</h2>
+      <p style="font-size: 16px">¿Tiene una duda sobre esta guía? Escríbala o dígala con el micrófono.</p>
+      <textarea id="j2-pregunta" rows="3" aria-label="Escriba su pregunta" placeholder="Por ejemplo: ¿cómo me conecto al wifi?"></textarea>
+      <div class="preguntas-botones">
+        <button type="button" class="btn btn-w btn-md" id="j2-hablar">${icono('mic', 24)}<span>Hablar</span></button>
+        <button type="submit" class="btn btn-p btn-md">${icono('send', 24)}<span>Preguntar</span></button>
+      </div>
+      <div id="j2-respuesta" class="preguntas-respuesta" aria-live="polite" hidden></div>
+    </form>`);
+  const form = $('#j2-preguntas'), campo = $('#j2-pregunta'), caja = $('#j2-respuesta'), hablarBtn = $('#j2-hablar');
+
+  async function preguntar() {
+    const texto = campo.value.trim();
+    if (!texto) { campo.focus(); return; }
+    caja.hidden = false;
+    caja.innerHTML = '<p>Un momento, estoy buscando la respuesta…</p>';
+    const r = await pensar(post('/api/ayuda', { guia, paso: '', duda: texto }));
+    const respuesta = r?.texto || 'Disculpe, no pude responder ahora. Inténtelo otra vez en un momento.';
+    caja.innerHTML = `<p class="preguntas-dijo">Usted preguntó: «${esc(texto)}»</p><p>${esc(respuesta)}</p>`;
+    const rel = r?.guiaRelacionada;
+    if (rel) {
+      const ir = el(`<button type="button" class="btn btn-w btn-md">${icono('book', 22)}<span>Ver la guía «${esc(rel.titulo)}»</span></button>`);
+      ir.addEventListener('click', async () => {
+        const otra = (await traerGuias()).find(x => x.id === rel.id);
+        if (otra) abrir('guia-joven', { guia: otra });
+      });
+      caja.append(ir);
+    }
+    campo.value = '';
+    hablar(respuesta).catch(() => {});
+  }
+
+  form.addEventListener('submit', (e) => { e.preventDefault(); preguntar(); });
+  // Enter envía; Shift+Enter hace un salto de línea
+  campo.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); preguntar(); } });
+  hablarBtn.addEventListener('click', async () => {
+    if (reconActual) { detenerEscucha(); return; }
+    hablarBtn.querySelector('span').textContent = 'Escuchando… toque para parar';
+    try {
+      campo.value = await escuchar({ onParcial: (t) => { campo.value = t; } });
+      preguntar();
+    } catch (e) {
+      caja.hidden = false;
+      caja.innerHTML = '<p>No alcancé a escucharle. Puede escribir su pregunta en el recuadro.</p>';
+      campo.focus();
+    } finally {
+      hablarBtn.querySelector('span').textContent = 'Hablar';
+    }
+  });
 }
 
 /* =========================================================
@@ -2209,6 +2285,7 @@ function init() {
   $('#btn-soy-mayor').addEventListener('click', () => abrir(usuario ? 'inicio' : 'bienvenida'));
   $('#btn-escuchar-pagina').addEventListener('click', alternarLectura);
   $('#btn-detener').addEventListener('click', () => { callar(); setEstado(null); });
+  $('#btn-cerrar-lectura').addEventListener('click', () => { lecturaCerrada = true; callar(); setEstado(null); });
   $('#btn-otra-vez').addEventListener('click', () => { if (ultimoTexto) hablar(ultimoTexto).catch(() => {}); });
   $('#btn-escuchar-joven').addEventListener('click', () => {
     const b = $('#btn-escuchar-joven');

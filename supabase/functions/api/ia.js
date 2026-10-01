@@ -130,6 +130,32 @@ Responde SOLO este JSON:
   };
 }
 
+// ---------- Preguntas: una duda cualquiera mientras lee una guía ----------
+// Responde con la guía actual y las guías relacionadas de la enciclopedia.
+// Si la duda es algo básico que la guía necesita (ej. "Conexión a internet o wifi"),
+// da una orientación simple y general. Devuelve { texto, fuente } (fuente = id de guía o null).
+/** @param {{ guia: any, pregunta: string, relacionadas?: any[] }} datos */
+export async function responderPregunta({ guia, pregunta, relacionadas = [] }) {
+  const resumen = (g) => ({ id: g.id, titulo: g.titulo, autor: g.autor, materiales: g.materiales, pasos: g.pasos, consejos: g.consejos, advertencias: g.advertencias });
+  const r = await llmJSON({
+    system: `${ESTILO}
+Acompañas a una persona mayor que está leyendo una guía de SABERES y tiene una duda.
+Responde usando, en este orden:
+1. La guía que está leyendo ("guia_actual").
+2. Las guías de la enciclopedia SABERES que vienen en "otras_guias". Si la respuesta está en una de ellas, resúmela y pon su id en "fuente".
+3. Si es una duda chica y cotidiana (conectarse al wifi, cargar el celular, subir el volumen, agrandar la letra), respóndala igual con una orientación simple que sirva en casi cualquier celular, sin nombres exactos de menús ni datos que puedan estar equivocados. Nunca conteste solo "la guía no lo dice": ayude.
+Si la duda no tiene nada que ver con la guía ni con el uso cotidiano, dígalo con honestidad y con cariño.
+Nunca: consejos médicos ni dosis, dinero, claves, números de teléfono ni links.
+Sea BREVE: máximo 2 frases cortas, como una respuesta al paso, sin saludos ni repetir la pregunta. Sin listas.
+Responde SOLO: {"texto":"...","fuente":"id de la guía de otras_guias que usaste, o null"}`,
+    user: JSON.stringify({ pregunta, guia_actual: resumen(guia), otras_guias: relacionadas.map(resumen) }),
+    temperature: 0.3, max_tokens: 350,
+  });
+  const t = tresFrases(texto(r.texto, 400));
+  if (!t || !limpio(t)) throw new Error("La IA no devolvió un texto válido");
+  return { texto: t, fuente: relacionadas.some((g) => g.id === r.fuente) ? r.fuente : null };
+}
+
 // ---------- Aprendo: "no entendí" o una duda sobre un paso ----------
 export async function explicarPaso({ guia, paso, duda, ayudaBase }) {
   const r = await llmJSON({
