@@ -46,6 +46,7 @@
         <button type="button" class="navlink" data-ir="aprender" data-seccion="aprender"><i data-icono="book" data-s="28"></i><span>Aprender</span></button>
         <button type="button" class="navlink" data-ir="ensenar" data-seccion="ensenar"><i data-icono="board" data-s="28"></i><span>Enseñar</span></button>
         <button type="button" class="navlink" data-ir="mi-historia" data-seccion="mi-historia"><i data-icono="sprout" data-s="28"></i><span>Mi historia</span></button>
+        <button type="button" class="navlink" data-ir="certificados" data-seccion="certificados"><i data-icono="award" data-s="28"></i><span>Certificados</span></button>
       </nav>
       <nav class="solo-landing hide-t nav-landing" aria-label="Principal">
         <a class="navlink" href="#como">Cómo funciona</a>
@@ -64,6 +65,7 @@
       <nav aria-label="Aprender" class="nav-joven">
         <button type="button" class="navlink" data-ir="jovenes" data-seccion-joven="explorar" style="min-height: 48px">Explorar guías</button>
         <button type="button" class="navlink" data-ir="experiencia" data-seccion-joven="experiencia" style="min-height: 48px">Por experiencia</button>
+        <button type="button" class="navlink" data-ir="certificados" data-seccion-joven="certificados" style="min-height: 48px">Mis certificados</button>
       </nav>
       <div class="flex1"></div>
       <button type="button" class="listen" id="btn-escuchar-joven" aria-pressed="false" style="font-size: 17px; min-height: 48px"><i data-icono="speaker" data-s="22"></i><span>Escuchar</span></button>
@@ -290,6 +292,11 @@
                 <span class="tile-titulo">Mis guías y gracias</span>
                 <span style="font-size: .9em">Quiénes aprendieron de usted.</span>
               </button>
+              <button type="button" class="tile tile-menu" data-ir="certificados">
+                <span class="icono-caja" style="background: #FBEACB; color: #6B4A0E"><i data-icono="award" data-s="50"></i></span>
+                <span class="tile-titulo">Mis certificados</span>
+                <span style="font-size: .9em">Los cursos que ha completado.</span>
+              </button>
             </div>
           </div>
           <aside style="display: flex; flex-direction: column; gap: 24px; font-size: .9em">
@@ -377,6 +384,7 @@
           <span class="speaker" aria-hidden="true"><i data-icono="speaker" data-s="32"></i></span>
           <div class="bubble" role="status"><p class="bubble-titulo">SABERES le dice</p><p id="d3-texto" style="font-size: 1.1em; margin-top: 6px"></p></div>
         </div>
+        <div id="d3-certificado" class="certificado-entregado" hidden></div>
         <div class="controles" data-controles style="justify-items: center; margin-top: 8px"></div>
       </div>
     </section>
@@ -602,8 +610,9 @@
           <p id="j3-sub" style="font-size: 20px"></p>
           <div class="row" id="j3-rapidos" style="justify-content: center; gap: 10px"></div>
           <div style="width: 100%; text-align: left; display: grid; gap: 8px">
-            <label for="nombre-joven" style="font-weight: 700">Su nombre</label>
+            <label for="nombre-joven" style="font-weight: 700">Nombre que aparecerá en el certificado</label>
             <input id="nombre-joven" class="field field-sm" type="text" autocomplete="given-name" placeholder="Ej: Tomás">
+            <p id="nombre-joven-ayuda" style="font-size: 15px; color: #6B5A4C">Usaremos el nombre guardado en su cuenta.</p>
           </div>
           <div style="width: 100%; text-align: left">
             <label for="j3-msg" style="font-weight: 700">Su mensaje (opcional)</label>
@@ -615,6 +624,7 @@
           <span class="circulo-ok" style="width: 104px; height: 104px"><i data-icono="check" data-s="56" data-g="2.6"></i></span>
           <h1 id="j3-ok" style="font-size: 34px; line-height: 1.15" role="status"></h1>
           <div class="wa-preview" id="j3-wa"></div>
+          <div id="j3-certificado" class="certificado-entregado" style="width: 100%"></div>
           <div class="row" style="justify-content: center; margin-top: 6px">
             <button type="button" class="btn btn-p btn-sm" data-ir="experiencia" style="min-height: 60px"><i data-icono="users" data-s="22"></i>Personas que vivieron lo mismo que usted</button>
             <button type="button" class="btn btn-s btn-sm" data-ir="jovenes" style="min-height: 60px">Seguir explorando</button>
@@ -623,7 +633,22 @@
       </div>
     </section>
 
-    <!-- ═════════ J4 · POR EXPERIENCIA ═════════ -->
+    <!-- ═════════ J4 · MIS CERTIFICADOS ═════════ -->
+    <section id="certificados" class="pantalla fade" hidden>
+      <div class="wrap certificados-caja">
+        <header class="certificados-cabecera">
+          <span class="icono-caja" style="background: #FBEACB; color: #6B4A0E"><i data-icono="award" data-s="50"></i></span>
+          <div>
+            <p style="font-weight: 700; color: #8E3717">Sus logros</p>
+            <h1 tabindex="-1" style="font-size: 2.3em; line-height: 1.08">Mis certificados</h1>
+            <p id="certificados-resumen" style="margin-top: 8px">Aquí aparecerán los cursos que complete.</p>
+          </div>
+        </header>
+        <div id="lista-certificados" class="g2 lista-certificados" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- ═════════ J5 · POR EXPERIENCIA ═════════ -->
     <section id="experiencia" class="pantalla fade joven" hidden>
       <section style="background: #E6EEDC; padding: 44px 0 48px; margin-top: 20px">
         <div class="wrap" style="display: flex; flex-direction: column; gap: 14px">
@@ -669,6 +694,7 @@
 
 <script src="dibujos.js"></script>
 <script src="mock.js"></script>
+<script src="certificados.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

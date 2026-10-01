@@ -301,15 +301,23 @@
     bienvenida: 'Qué gusto tenerle de vuelta, Rosa.'
   }];
 
-  // ---------- Memoria (usuarios en localStorage, el resto en memoria) ----------
+  // ---------- Memoria (usuarios y certificados en localStorage) ----------
   const LLAVE = 'saberes-mock-usuarios';
+  const LLAVE_CERTIFICADOS = 'saberes-mock-certificados';
   const usuarios = USUARIOS_BASE.concat(leerUsuarios());
+  const certificadosGuardados = leerCertificados();
 
   function leerUsuarios() {
     try { return JSON.parse(localStorage.getItem(LLAVE)) || []; } catch (e) { return []; }
   }
   function guardarUsuarios() {
     try { localStorage.setItem(LLAVE, JSON.stringify(usuarios.filter(u => u.id !== 'u-rosa'))); } catch (e) { /* sin almacenamiento */ }
+  }
+  function leerCertificados() {
+    try { return JSON.parse(localStorage.getItem(LLAVE_CERTIFICADOS)) || []; } catch (e) { return []; }
+  }
+  function guardarCertificados() {
+    try { localStorage.setItem(LLAVE_CERTIFICADOS, JSON.stringify(certificadosGuardados)); } catch (e) { /* sin almacenamiento */ }
   }
 
   // ---------- Utilidades ----------
@@ -385,16 +393,63 @@
     return { texto };
   }
 
-  function aprendi({ guiaId, aprendiz, mensaje }) {
-    const g = GUIAS.find(x => x.id === guiaId);
-    if (!g) return { ok: false, error: 'No encontré esa guía.' };
-    g.aprendieron = (Number(g.aprendieron) || 0) + 1;
+  function agregarGracias(g, aprendiz, mensaje) {
     GRACIAS.unshift({
       autorId: g.autorId, who: null, nombre: aprendiz || 'Alguien', edad: null, comuna: '',
       guia: g.titulo.toLowerCase(), mensaje: mensaje || '¡Gracias!', cuando: 'Ahora'
     });
     console.info(`[MOCK] WhatsApp a ${g.autor}: "${aprendiz || 'Alguien'} aprendió su ${g.titulo.toLowerCase()} gracias a usted."`);
-    return { ok: true, aprendieron: g.aprendieron };
+  }
+
+  function completar({ guiaId, aprendiz, usuarioId, propietarioClave, mensaje, agradecer: conGracias }) {
+    const g = GUIAS.find(x => x.id === guiaId);
+    if (!g) return { ok: false, error: 'No encontré esa guía.' };
+    if (!propietarioClave) return { ok: false, error: 'No pude identificar dónde guardar su certificado.' };
+    const cuenta = usuarioId ? usuarios.find(x => x.id === usuarioId) : null;
+    if (usuarioId && !cuenta) return { ok: false, error: 'No encontré la cuenta para emitir el certificado.' };
+    const nombreCertificado = cuenta?.nombre || aprendiz || 'Participante';
+    const existente = certificadosGuardados.find(c => c.guiaId === guiaId && c.propietarioClave === propietarioClave);
+    if (existente) {
+      // Si la persona inició sesión después de emitirlo, sincronizamos el nombre
+      // ya guardado con el de su cuenta sin volver a contar la finalización.
+      if (cuenta && (existente.aprendiz !== cuenta.nombre || existente.usuarioId !== cuenta.id)) {
+        existente.aprendiz = cuenta.nombre;
+        existente.usuarioId = cuenta.id;
+        guardarCertificados();
+      }
+      return { ok: true, aprendieron: g.aprendieron, certificado: existente, yaEmitido: true };
+    }
+
+    g.aprendieron = (Number(g.aprendieron) || 0) + 1;
+    const semilla = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)).replace(/-/g, '').slice(0, 8).toUpperCase();
+    const certificado = {
+      id: 'c-' + semilla.toLowerCase(), codigo: 'SAB-' + semilla,
+      guiaId: g.id, usuarioId: usuarioId || null, propietarioClave,
+      aprendiz: nombreCertificado, cursoTitulo: g.titulo, autor: g.autor,
+      emitidoEn: new Date().toISOString()
+    };
+    certificadosGuardados.unshift(certificado);
+    guardarCertificados();
+    if (conGracias) agregarGracias(g, nombreCertificado, mensaje);
+    return { ok: true, aprendieron: g.aprendieron, certificado, yaEmitido: false };
+  }
+
+  function agradecer({ guiaId, aprendiz, mensaje }) {
+    const g = GUIAS.find(x => x.id === guiaId);
+    if (!g) return { ok: false, error: 'No encontré esa guía.' };
+    agregarGracias(g, aprendiz, mensaje);
+    return { ok: true };
+  }
+
+  function certificados({ propietarioClave }) {
+    return certificadosGuardados.filter(c => c.propietarioClave === propietarioClave);
+  }
+
+  function aprendi(datos) {
+    return completar(Object.assign({}, datos, {
+      propietarioClave: datos.propietarioClave || 'legado-' + Date.now().toString(36),
+      agradecer: true
+    }));
   }
 
   function ensenar({ usuarioId, relato = '' }) {
@@ -514,6 +569,9 @@
     'POST /api/ensenar': ensenar,
     'POST /api/buscar': buscar,
     'POST /api/ayuda': ayuda,
+    'POST /api/completar': completar,
+    'POST /api/agradecer': agradecer,
+    'POST /api/certificados': certificados,
     'POST /api/aprendi': aprendi,
     'GET /api/guias': () => GUIAS
   };

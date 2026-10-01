@@ -87,7 +87,7 @@ body { margin: 0; background: #FFF8EE; }
 .sb .marca { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 0 8px; border-radius: 14px; }
 .marca-nombre { font-size: 28px; font-weight: 700; letter-spacing: .06em; }
 .nav-app, .nav-landing { display: flex; gap: 6px; margin-left: 20px; flex-wrap: wrap; }
-.nav-joven { display: flex; gap: 4px; margin-left: 12px; }
+.nav-joven { display: flex; gap: 4px; margin-left: 12px; flex-wrap: wrap; }
 .sb .navlink { display: inline-flex; align-items: center; gap: 10px; min-height: 56px; padding: 0 18px; border-radius: 14px; font-weight: 700; color: #2B1D14; text-decoration: none; transition: background-color 300ms, box-shadow 300ms; cursor: pointer; }
 .sb .navlink:hover { background: #F8E6CF; }
 .sb .navlink.on { background: #F8E0CC; box-shadow: inset 0 -4px 0 #A9461F; }
@@ -309,6 +309,30 @@ textarea.field { resize: vertical; line-height: 1.4; }
 /* ---------- D3 · ¡Lo logró! ---------- */
 .logro-caja { text-align: center; padding-top: 56px; padding-bottom: 80px; display: flex; flex-direction: column; align-items: center; gap: 26px; position: relative; z-index: 6; }
 .medalla { width: 168px; height: 168px; border-radius: 50%; background: #E3A72F; color: #2B1D14; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 14px #FBEACB; }
+.certificado-entregado { width: 100%; max-width: 720px; }
+.certificado-aviso { display: flex; align-items: center; gap: 18px; padding: 20px 22px; text-align: left; background: #FFFDF8; border: 2px solid #E3B866; }
+.certificado-aviso .btn { margin-left: auto; flex: none; }
+
+/* ---------- Certificados ---------- */
+.certificados-caja { padding-top: 40px; padding-bottom: 80px; }
+.certificados-cabecera { display: flex; align-items: center; gap: 24px; margin-bottom: 36px; }
+.lista-certificados { gap: 22px; }
+.certificado-tarjeta { overflow: hidden; display: flex; flex-direction: column; }
+.certificado-mini { position: relative; aspect-ratio: 842 / 595; padding: 24px 38px 24px 76px; background: #FFF8EE; border-bottom: 1px solid #EFDFC8; display: flex; align-items: center; justify-content: center; text-align: center; overflow: hidden; }
+.certificado-mini::before { content: ""; position: absolute; inset: 12px; border: 4px solid #A9461F; box-shadow: inset 0 0 0 3px #FFF8EE, inset 0 0 0 5px #E3A72F; pointer-events: none; }
+.certificado-mini-franja { position: absolute; z-index: 1; left: 12px; top: 12px; bottom: 12px; width: 48px; background: #A9461F; border-right: 5px solid #E3A72F; }
+.certificado-mini-contenido { position: relative; z-index: 2; width: 88%; }
+.certificado-mini-marca { padding-bottom: 10px; border-bottom: 2px solid #A9461F; font-weight: 700; letter-spacing: .14em; font-size: 14px; }
+.certificado-mini-marca span { color: #6B4A0E; letter-spacing: .04em; font-size: 8px; }
+.certificado-mini-tipo { margin-top: 14px !important; color: #8E3717; font-weight: 700; font-size: 14px; letter-spacing: .06em; }
+.certificado-mini-tipo strong { display: block; margin-top: 2px; color: #2B1D14; font-size: 21px; letter-spacing: 0; }
+.certificado-mini-otorgado { margin-top: 8px !important; color: #6B5A4C; font-size: 10px; }
+.certificado-mini-nombre { margin-top: 3px !important; font-family: Georgia, 'Times New Roman', serif; font-style: italic; color: #8E3717; font-size: 29px; line-height: 1.1; }
+.certificado-mini-curso { margin: 11px auto 0 !important; max-width: 82%; padding: 7px 12px; color: #2F451A; background: #E6EEDC; border: 1px solid #B9CBA0; font-weight: 700; font-size: 16px; line-height: 1.15; }
+.certificado-mini-autor { margin-top: 9px !important; color: #6B5A4C; font-family: Georgia, 'Times New Roman', serif; font-size: 10px; }
+.certificado-mini-sello { position: absolute; z-index: 3; right: 28px; bottom: 25px; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #E3A72F; color: #2B1D14; border: 4px solid #A9461F; box-shadow: 0 0 0 3px #FFF8EE; font-weight: 700; font-size: 24px; }
+.certificado-cuerpo { padding: 24px; display: flex; flex-direction: column; gap: 12px; flex-grow: 1; }
+.certificado-cuerpo .btn { margin-top: auto; align-self: flex-start; }
 
 /* ---------- E1 · Grabar ---------- */
 .grabadora { padding: 36px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
@@ -444,6 +468,16 @@ body[data-barra="joven"] .lectura { font-size: 20px; }
   .celular, .celular-bloqueo { transform: scale(.85); transform-origin: top center; }
   .icono-grande { width: 160px; height: 160px; }
   .j-buscar { flex-direction: column; }
+  .certificados-cabecera, .certificado-aviso { align-items: flex-start; flex-wrap: wrap; }
+  .certificado-aviso .btn { margin-left: 0; }
+  .certificado-mini { padding-left: 58px; padding-right: 22px; }
+  .certificado-mini-franja { width: 36px; }
+  .certificado-mini-marca span, .certificado-mini-autor { display: none; }
+  .certificado-mini-tipo { font-size: 11px; }
+  .certificado-mini-tipo strong { font-size: 17px; }
+  .certificado-mini-nombre { font-size: 22px; }
+  .certificado-mini-curso { font-size: 13px; }
+  .certificado-mini-sello { width: 38px; height: 38px; right: 22px; bottom: 21px; font-size: 18px; }
   .dice { gap: 12px; }
   .speaker { width: 48px; height: 48px; }
   .paso-cuerpo-grande { font-size: 32px; }

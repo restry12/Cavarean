@@ -75,6 +75,37 @@ const textoAprendieron = (n) => `${Number(n) || 0} aprendieron`;
 function leerLocal(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function guardarLocal(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } }
 
+// Identificador estable para guardar y recuperar los certificados. Las personas
+// con cuenta los conservan por usuario; en la vista pública quedan en este navegador.
+function claveCertificados() {
+  if (usuario?.id) return `usuario:${usuario.id}`;
+  const llave = 'saberes-certificados-clave';
+  let valor = leerLocal(llave);
+  if (!valor) {
+    const aleatorio = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    valor = `navegador:${aleatorio}`;
+    guardarLocal(llave, valor);
+  }
+  return valor;
+}
+
+function nombreCuentaAprendiz() {
+  return String(usuario?.nombre || leerLocal('saberes-joven') || '').trim();
+}
+
+function guardarCuentaAprendiz(nombre) {
+  if (!usuario && nombre) guardarLocal('saberes-joven', nombre.trim());
+}
+
+function datosParaCompletar(guia, aprendiz, extra = {}) {
+  return Object.assign({
+    guiaId: guia.id,
+    aprendiz: usuario?.nombre || aprendiz || 'Participante',
+    usuarioId: usuario?.id || null,
+    propietarioClave: claveCertificados()
+  }, extra);
+}
+
 // Promesa que se rechaza con CANCELADO si se llama a cancelarTodo()
 function cancelable(fn) {
   return new Promise((res, rej) => {
@@ -804,6 +835,7 @@ const PANTALLAS = {
   'mi-historia': { barra: 'app', seccion: 'mi-historia' },
   leccion: { barra: 'app', seccion: 'mi-historia' },
   'mis-guias': { barra: 'app', seccion: 'inicio' },
+  certificados: { barra: 'joven', joven: 'certificados' },
   jovenes: { barra: 'joven', joven: 'explorar' },
   'guia-joven': { barra: 'joven', joven: 'explorar' },
   'gracias-joven': { barra: 'joven', joven: 'explorar' },
@@ -811,7 +843,10 @@ const PANTALLAS = {
 };
 
 function irA(idPantalla) {
-  const cfg = PANTALLAS[idPantalla] || {};
+  const base = PANTALLAS[idPantalla] || {};
+  const cfg = idPantalla === 'certificados' && usuario
+    ? Object.assign({}, base, { barra: 'app', seccion: 'certificados', joven: null })
+    : base;
   document.querySelectorAll('.pantalla').forEach(s => { s.hidden = s.id !== idPantalla; });
   const eraJoven = document.body.dataset.barra === 'joven';
   document.body.dataset.barra = cfg.barra || 'simple';
@@ -884,6 +919,7 @@ const ENTRADAS = {
   'mi-historia': (g) => flujoMiHistoria(g),
   leccion: (g) => flujoLeccion(g),
   'mis-guias': (g) => flujoMisGuias(g),
+  certificados: (g) => flujoCertificados(g),
   jovenes: (g, a) => flujoJovenes(g, a),
   'guia-joven': (g, a) => flujoGuiaJoven(g, a),
   'gracias-joven': (g, a) => flujoGraciasJoven(g, a),
@@ -952,6 +988,49 @@ function lanzarConfeti(seccion) {
   const caja = seccion.querySelector('.confetti');
   if (!caja) return;
   caja.innerHTML = CONFETI.map(c => `<i style="left:${c.l};width:${c.w};background:${c.c};animation-delay:${c.d}"></i>`).join('');
+}
+
+function descargarCertificado(certificado) {
+  if (!certificado || !window.SABERES_CERTIFICADOS) return;
+  window.SABERES_CERTIFICADOS.descargarCertificado(certificado);
+}
+
+function tarjetaCertificado(certificado) {
+  const fecha = window.SABERES_CERTIFICADOS?.fechaLarga(certificado.emitidoEn) || '';
+  const tarjeta = el(`<article class="card certificado-tarjeta">
+      <div class="certificado-mini" aria-hidden="true">
+        <span class="certificado-mini-franja"></span>
+        <div class="certificado-mini-contenido">
+          <p class="certificado-mini-marca">SABERES <span>· APRENDA, ENSEÑE Y DEJE SU HUELLA</span></p>
+          <p class="certificado-mini-tipo">CERTIFICADO <strong>DE APRENDIZAJE</strong></p>
+          <p class="certificado-mini-otorgado">Otorgado a</p>
+          <p class="certificado-mini-nombre">${esc(certificado.aprendiz)}</p>
+          <p class="certificado-mini-curso">${esc(certificado.cursoTitulo)}</p>
+          <p class="certificado-mini-autor">Compartido por ${esc(certificado.autor)}</p>
+        </div>
+        <span class="certificado-mini-sello">S</span>
+      </div>
+      <div class="certificado-cuerpo">
+        <p class="pill" style="align-self: flex-start; background: #E6EEDC; color: #2F451A">Curso completado</p>
+        <h2 style="font-size: 1.3em; line-height: 1.15">${esc(certificado.cursoTitulo)}</h2>
+        <p>Enseñado por <strong>${esc(certificado.autor)}</strong>${fecha ? ` · ${esc(fecha)}` : ''}</p>
+        <p style="font-size: .75em; color: #6B5A4C">Código ${esc(certificado.codigo)}</p>
+        <button type="button" class="btn btn-p btn-md">${icono('download', 25)}Descargar PDF</button>
+      </div>
+    </article>`);
+  tarjeta.querySelector('button').addEventListener('click', () => descargarCertificado(certificado));
+  return tarjeta;
+}
+
+function pintarCertificadoEntregado(caja, certificado) {
+  if (!caja || !certificado) return;
+  caja.hidden = false;
+  caja.innerHTML = `<div class="card certificado-aviso">
+      <span class="icono-caja" style="width: 64px; height: 64px; border-radius: 18px; background: #FBEACB; color: #6B4A0E">${icono('award', 36)}</span>
+      <div style="flex-grow: 1"><p style="font-weight: 700">Su certificado ya está en la plataforma</p><p style="font-size: .85em">Puede descargarlo ahora o encontrarlo después en «Mis certificados».</p></div>
+      <button type="button" class="btn btn-p btn-md">${icono('download', 25)}Descargar PDF</button>
+    </div>`;
+  caja.querySelector('button').addEventListener('click', () => descargarCertificado(certificado));
 }
 
 function pintarPuntos(caja, total, actual) {
@@ -1198,6 +1277,7 @@ function calcularHitos(mias) {
 function interpretarMenu(t) {
   const n = normal(t);
   if (/ensen/.test(n)) return { id: 'ensenar' };
+  if (/certific|diploma/.test(n)) return { id: 'certificados' };
   if (/(suen|histori|leccion|camino)/.test(n)) return { id: 'mi-historia' };
   if (/(gracias|mis guias)/.test(n)) return { id: 'mis-guias' };
   if (/(aprend|como se|quiero (ver|hacer|saber|usar|pagar))/.test(n)) {
@@ -1277,12 +1357,12 @@ async function flujoInicio(g) {
   $('#c-sueno-barra-caja').setAttribute('aria-label', `Progreso: ${logrados} de 5 pasos`);
   $('#c-sueno-sig').textContent = siguiente ? `Siguiente: ${siguiente.t.charAt(0).toLowerCase() + siguiente.t.slice(1)}.` : '¡Completó su camino!';
 
-  await hablar(`${saludoDelDia()}, ${pn}. ${total ? `${total} ${total === 1 ? 'persona aprendió' : 'personas aprendieron'} de usted. ` : ''}¿Qué quiere hacer hoy? Puede decir: aprender, enseñar, mi sueño o mis gracias.`);
+  await hablar(`${saludoDelDia()}, ${pn}. ${total ? `${total} ${total === 1 ? 'persona aprendió' : 'personas aprendieron'} de usted. ` : ''}¿Qué quiere hacer hoy? Puede decir: aprender, enseñar, mi sueño, mis certificados o mis gracias.`);
   while (true) {
     const t = await escucharBarraInicio();
     const destino = interpretarMenu(t);
     if (destino) return abrir(destino.id, destino.args || {});
-    await hablar('Disculpe, no le entendí. Puede decir: aprender, enseñar, mi sueño o mis gracias. También puede tocar una opción.');
+    await hablar('Disculpe, no le entendí. Puede decir: aprender, enseñar, mi sueño, mis certificados o mis gracias. También puede tocar una opción.');
   }
 }
 
@@ -1474,25 +1554,33 @@ async function flujoLogro(g, guia) {
   if (!requiereUsuario()) return;
   const sec = $('#logro');
   lanzarConfeti(sec);
+  const cajaCertificado = $('#d3-certificado');
+  cajaCertificado.hidden = true;
+  cajaCertificado.innerHTML = '';
+  const finalizacion = await pensar(post('/api/completar', datosParaCompletar(guia, usuario.nombre)));
+  vigente(g);
+  if (!finalizacion?.certificado) throw new Error(finalizacion?.error || 'No se pudo emitir el certificado');
+  if (finalizacion.aprendieron != null) guia.aprendieron = finalizacion.aprendieron;
+  pintarCertificadoEntregado(cajaCertificado, finalizacion.certificado);
   const consejo = (guia.consejos || [])[0];
   const texto = (guia.logro || `Terminó «${guia.titulo}». ¡Muy bien hecho!`) + (consejo ? ` Un consejo de ${nombreAutor(guia.autor)}: ${consejo}` : '');
   $('#d3-texto').textContent = texto;
-  await hablar('¡Lo logró! ' + texto);
+  await hablar('¡Lo logró! ' + texto + ' Su certificado ya está guardado en la plataforma y puede descargarlo cuando quiera.');
 
   if (!esMia(guia)) {
     const pn = nombreAutor(guia.autor);
     $('#d3-texto').textContent = `¿Quiere darle las gracias ${aQuien(pn)}? Le llega un mensaje por WhatsApp.`;
     await hablar(`¿Quiere darle las gracias ${aQuien(pn)}? Le llega un mensaje por WhatsApp.`);
     if (await confirmar({ si: 'Sí, dar las gracias', no: 'No, gracias', iconoSi: 'heart', iconoNo: 'x', vozSi: ['gracias'], vozNo: ['no gracias'] })) {
-      const r = await pensar(post('/api/aprendi', { guiaId: guia.id, aprendiz: usuario.nombre, mensaje: '¡Gracias por enseñarme!' }));
+      await pensar(post('/api/agradecer', { guiaId: guia.id, aprendiz: usuario.nombre, mensaje: '¡Gracias por enseñarme!' }));
       vigente(g);
-      if (r?.aprendieron != null) guia.aprendieron = r.aprendieron;
       $('#d3-texto').textContent = `Le enviamos su agradecimiento ${aQuien(pn)} 💌`;
       await hablar(`Le enviamos su agradecimiento ${aQuien(pn)}.`);
     }
   }
   const destino = await elegir([
     { texto: 'Aprender otra cosa', clase: 'btn-p', valor: 'aprender', voz: ['aprender', 'otra cosa'] },
+    { texto: 'Ver mis certificados', clase: 'btn-s', icono: 'award', valor: 'certificados', voz: ['certificado', 'mis certificados'] },
     { texto: 'Volver al inicio', clase: 'btn-s', icono: 'home', valor: 'inicio', voz: ['inicio', 'volver'] }
   ]);
   return abrir(destino);
@@ -1819,6 +1907,31 @@ async function flujoMisGuias(g) {
 }
 
 /* =========================================================
+   Mis certificados
+   ========================================================= */
+async function flujoCertificados(g) {
+  pintarJovenUsuario();
+  const datos = await pensar(post('/api/certificados', { propietarioClave: claveCertificados() }));
+  vigente(g);
+  const certificados = Array.isArray(datos) ? datos : [];
+  const lista = $('#lista-certificados');
+  lista.innerHTML = '';
+  $('#certificados-resumen').textContent = certificados.length
+    ? `${certificados.length === 1 ? 'Tiene 1 certificado' : `Tiene ${certificados.length} certificados`}. Puede descargarlos cuando quiera.`
+    : 'Aquí aparecerán automáticamente los cursos que complete.';
+
+  if (!certificados.length) {
+    const vacio = el(`<div class="card" style="grid-column: 1 / -1; padding: 36px; display: flex; gap: 22px; align-items: center; flex-wrap: wrap">
+        <span class="icono-caja" style="background: #E6EEDC; color: #3F5A24">${icono('book', 48)}</span>
+        <div style="flex: 1 1 300px"><h2 style="font-size: 1.35em">Todavía no tiene certificados</h2><p style="margin-top: 6px">Complete todos los pasos de una guía y su certificado quedará guardado aquí.</p></div>
+        <button type="button" class="btn btn-p btn-md">Explorar cursos</button>
+      </div>`);
+    vacio.querySelector('button').addEventListener('click', () => abrir(usuario ? 'aprender' : 'jovenes'));
+    lista.append(vacio);
+  } else certificados.forEach(certificado => lista.append(tarjetaCertificado(certificado)));
+}
+
+/* =========================================================
    Vista Aprender · J1 Explorar (para cualquier persona)
    ========================================================= */
 let guiasJovenes = [];
@@ -1850,7 +1963,7 @@ function pintarListaJovenes() {
 }
 
 function pintarJovenUsuario() {
-  const nombre = leerLocal('saberes-joven');
+  const nombre = nombreCuentaAprendiz();
   $('#joven-usuario').hidden = !nombre;
   if (nombre) {
     $('#joven-avatar').innerHTML = avatar({ nombre }, 40);
@@ -1886,7 +1999,7 @@ async function flujoGuiaJoven(g, { guia }) {
   const cuerpo = $('#j2-cuerpo');
   const gracias = `<div class="card" style="padding: 28px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; background: #FFFDF8" id="j2-resulto">
       <p style="font-size: 22px; font-weight: 700">${guia.leccion ? '¿Le sirvió?' : '¿Le resultó?'}</p>
-      <button type="button" class="btn btn-p" id="j2-gracias" style="font-size: 21px">${icono('heart', 26)}<span>¡Aprendí! Darle las gracias ${esc(aQuien(pn))}</span></button>
+      <button type="button" class="btn btn-p" id="j2-gracias" style="font-size: 21px" ${guia.leccion ? '' : 'disabled'}>${icono(guia.leccion ? 'heart' : 'check', 26)}<span>${guia.leccion ? `¡Aprendí! Darle las gracias ${esc(aQuien(pn))}` : `Complete los ${(guia.pasos || []).length} pasos para recibir su certificado`}</span></button>
     </div>`;
   if (guia.leccion) {
     const l = guia.leccion;
@@ -1917,7 +2030,13 @@ async function flujoGuiaJoven(g, { guia }) {
         b.querySelector('.check').classList.toggle('on', on);
         b.setAttribute('aria-pressed', String(on));
         pintarAvanceJoven(pasos.length, hechos.size);
-        if (hechos.size === pasos.length) $('#j2-resulto').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const completo = pasos.length > 0 && hechos.size === pasos.length;
+        const botonFinal = $('#j2-gracias');
+        botonFinal.disabled = !completo;
+        botonFinal.querySelector('span').textContent = completo
+          ? `¡Curso completado! Recibir certificado y dar las gracias ${aQuien(pn)}`
+          : `Complete los ${pasos.length} pasos para recibir su certificado (${hechos.size} de ${pasos.length})`;
+        if (completo) $('#j2-resulto').scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
       ol.append(li);
     });
@@ -1965,11 +2084,18 @@ async function flujoGraciasJoven(g, { guia }) {
   const pn = nombreAutor(guia.autor);
   $('#j3-pendiente').hidden = false;
   $('#j3-enviado').hidden = true;
+  $('#j3-certificado').innerHTML = '';
   sec.querySelector('.confetti').innerHTML = '';
   $('#j3-retrato').innerHTML = avatar(guia, 128);
   $('#j3-titulo').textContent = guia.leccion ? `¿Le sirvió la historia ${deQuien(pn)}?` : `¿Le resultó «${guia.titulo}»?`;
   $('#j3-sub').textContent = `Cuéntele ${aQuien(pn)}. Le llegará su mensaje por WhatsApp, leído en voz alta.`;
-  $('#nombre-joven').value = leerLocal('saberes-joven') || '';
+  const campoNombre = $('#nombre-joven');
+  const nombreCuenta = nombreCuentaAprendiz();
+  campoNombre.value = nombreCuenta;
+  campoNombre.readOnly = !!nombreCuenta;
+  $('#nombre-joven-ayuda').textContent = nombreCuenta
+    ? `Este es el nombre guardado en su ${usuario ? 'cuenta' : 'perfil'} de SABERES.`
+    : 'Escríbalo una sola vez. Quedará guardado en su perfil para los próximos certificados.';
   const msg = $('#j3-msg');
   msg.value = '';
   msg.placeholder = `Escríbale algo ${aQuien(pn)}`;
@@ -1985,26 +2111,30 @@ async function flujoGraciasJoven(g, { guia }) {
     caja.append(b);
   });
   const enviar = $('#j3-enviar');
-  enviar.querySelector('span').textContent = `¡Aprendí! Darle las gracias ${aQuien(pn)}`;
-  enviar.disabled = false;
+  enviar.querySelector('span').textContent = `Recibir mi certificado y dar las gracias ${aQuien(pn)}`;
+  enviar.disabled = !campoNombre.value.trim();
+  campoNombre.oninput = () => { enviar.disabled = !campoNombre.value.trim(); };
 
   await cancelable((resolver) => { enviar.onclick = () => resolver(); });
   enviar.disabled = true;
-  const aprendiz = $('#nombre-joven').value.trim() || 'Una persona';
-  if ($('#nombre-joven').value.trim()) guardarLocal('saberes-joven', aprendiz);
+  campoNombre.oninput = null;
+  const aprendiz = usuario?.nombre || campoNombre.value.trim();
+  guardarCuentaAprendiz(aprendiz);
   const mensaje = msg.value.trim() || '¡Gracias por enseñarme!';
-  const r = await pensar(post('/api/aprendi', { guiaId: guia.id, aprendiz, mensaje }));
+  const r = await pensar(post('/api/completar', datosParaCompletar(guia, aprendiz, { mensaje, agradecer: true })));
   vigente(g);
+  if (!r?.certificado) throw new Error(r?.error || 'No se pudo emitir el certificado');
   if (r?.aprendieron != null) guia.aprendieron = r.aprendieron;
   pintarJovenUsuario();
   $('#j3-pendiente').hidden = true;
   $('#j3-enviado').hidden = false;
   lanzarConfeti(sec);
-  $('#j3-ok').textContent = `${mayus(pn)} recibirá su agradecimiento por WhatsApp`;
+  $('#j3-ok').textContent = `¡Certificado emitido! ${mayus(pn)} recibirá su agradecimiento por WhatsApp`;
   $('#j3-wa').innerHTML = `<p class="con-icono" style="gap: 8px; font-size: 14px; font-weight: 700"><span class="wa-ico" style="width: 22px; height: 22px; border-radius: 6px">${icono('chat', 14)}</span>WhatsApp · SABERES</p>
     <p style="font-weight: 700; margin-top: 8px">${esc(aprendiz)} aprendió su ${esc(guia.titulo.toLowerCase())} gracias a usted.</p>
     <p style="margin-top: 4px">«${esc(mensaje)}»</p>`;
-  await hablar(`Le enviamos su agradecimiento a ${guia.autor}.`);
+  pintarCertificadoEntregado($('#j3-certificado'), r.certificado);
+  await hablar(`Le enviamos su agradecimiento a ${guia.autor}. Su certificado ya está guardado en la plataforma y puede descargarlo cuando quiera.`);
 }
 
 /* =========================================================
@@ -2119,14 +2249,14 @@ const GRUPOS_DEMO = [
   { g: 'INICIO Y APRENDER', items: [['inicio', 'C · Inicio'], ['aprender', 'D1 · ¿Qué quiere aprender?'], ['guia', 'D2 · Paso a paso'], ['logro', 'D3 · ¡Lo logró!']] },
   { g: 'ENSEÑAR', items: [['ensenar', 'E1 · Grabar'], ['ordenando', 'E2 · Ordenando'], ['guia-creada', 'E3 · Guía creada'], ['publicada', 'E4 · Publicada']] },
   { g: 'MI HISTORIA Y GRACIAS', items: [['mi-historia', 'F1 · Mi sueño'], ['leccion', 'F2 · Lección de vida'], ['mis-guias', 'G · Guías y gracias']] },
-  { g: 'VISTA APRENDER', items: [['jovenes', 'J1 · Explorar'], ['guia-joven', 'J2 · Guía'], ['gracias-joven', 'J3 · Dar las gracias'], ['experiencia', 'J4 · Por experiencia']] }
+  { g: 'VISTA APRENDER', items: [['jovenes', 'J1 · Explorar'], ['guia-joven', 'J2 · Guía'], ['gracias-joven', 'J3 · Dar las gracias'], ['certificados', 'J4 · Mis certificados'], ['experiencia', 'J5 · Por experiencia']] }
 ];
 const RECORRIDO_DEMO = [['bienvenida', 'Portada'], ['registro', 'Registro'], ['perfil', 'Perfil'], ['inicio', 'Inicio'], ['ensenar', 'Enseñar'],
   ['guia-creada', 'Guía creada'], ['publicada', 'Publicada'], ['jovenes', 'Alguien explora'], ['gracias-joven', 'Da las gracias'], ['mis-guias', 'WhatsApp'], ['mi-historia', 'Su sueño']];
 
 async function irDemo(id) {
   $('#demo').hidden = true;
-  const necesitaUsuario = !['bienvenida', 'entrar', 'registro', 'jovenes', 'guia-joven', 'gracias-joven', 'experiencia'].includes(id);
+  const necesitaUsuario = !['bienvenida', 'entrar', 'registro', 'jovenes', 'guia-joven', 'gracias-joven', 'certificados', 'experiencia'].includes(id);
   if (necesitaUsuario && !usuario) { usuario = window.MOCK.usuarioDemo(); pintarBarraUsuario(); }
   if (id === 'registro') estadoRegistro = { paso: 0, respuestas: {} };
   const guias = await traerGuias();
