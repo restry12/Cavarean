@@ -13,22 +13,30 @@
 </head>
 <body data-barra="landing">
 <div class="sb" id="app">
+  <a class="saltar" href="#principal">Saltar al contenido</a>
 
   <!-- ═════════ BARRA SUPERIOR · PERSONAS MAYORES ═════════ -->
   <header class="topbar" id="barra-mayor">
-    <div class="topbar-util">
+    <div class="topbar-util dark">
       <div class="wrap util-fila">
-        <p class="hide-t solo-landing" style="font-weight: 700">Hecho en Chile para personas de 50 años y más</p>
-        <div class="solo-app util-usuario"><span id="barra-avatar"></span><p id="barra-hola" style="font-weight: 700">Hola</p></div>
+        <p class="util-lema solo-landing">
+          <span class="util-estrella" aria-hidden="true"><i data-icono="star" data-s="20" data-g="2.2"></i></span>
+          <span>Hecho en Chile</span>
+          <span class="util-punto hide-m" aria-hidden="true"></span>
+          <span class="hide-m">para personas de <span class="util-50" aria-hidden="true">50+</span><span class="sr-only">50 años y más</span></span>
+        </p>
+        <div class="solo-app util-usuario"><span id="barra-avatar"></span><p id="barra-hola">Hola</p></div>
         <span id="aviso-mock" class="pill aviso-mock" hidden>Modo simulado</span>
         <div class="flex1"></div>
-        <span id="fs-label" class="hide-t" style="font-weight: 700">Tamaño de letra</span>
-        <div class="fsbox" role="group" aria-labelledby="fs-label">
-          <button type="button" class="fsbtn on" data-fs="0" aria-pressed="true" aria-label="Letra normal" style="font-size: 18px">A</button>
-          <button type="button" class="fsbtn" data-fs="1" aria-pressed="false" aria-label="Letra grande" style="font-size: 22px">A+</button>
-          <button type="button" class="fsbtn" data-fs="2" aria-pressed="false" aria-label="Letra muy grande" style="font-size: 26px">A++</button>
+        <div class="util-herramientas" role="group" aria-label="Herramientas de accesibilidad">
+          <span id="fs-label" class="util-etiqueta">Tamaño de letra</span>
+          <div class="fsbox" role="group" aria-labelledby="fs-label">
+            <button type="button" class="fsbtn on" data-fs="0" aria-pressed="true" aria-label="Letra normal" style="font-size: 17px">A</button>
+            <button type="button" class="fsbtn" data-fs="1" aria-pressed="false" aria-label="Letra grande" style="font-size: 21px">A+</button>
+            <button type="button" class="fsbtn" data-fs="2" aria-pressed="false" aria-label="Letra muy grande" style="font-size: 25px">A++</button>
+          </div>
+          <button type="button" class="listen listen-oro" id="btn-escuchar-pagina" aria-pressed="false"><i data-icono="speaker" data-s="24"></i><span>Escuchar <span class="hide-m">esta página</span></span></button>
         </div>
-        <button type="button" class="listen" id="btn-escuchar-pagina" aria-pressed="false"><i data-icono="speaker" data-s="26"></i><span>Escuchar esta página</span></button>
       </div>
     </div>
     <div class="wrap barra-principal">
@@ -69,7 +77,7 @@
     <button type="button" class="back" id="btn-volver"><i data-icono="back" data-s="28"></i><span>Volver</span></button>
   </div>
 
-  <main id="principal">
+  <main id="principal" tabindex="-1">
 
     <!-- ═════════ A · PORTADA ═════════ -->
     <section id="bienvenida" class="pantalla fade">
@@ -535,7 +543,7 @@
         </div>
         <aside class="aside-celular">
           <p style="font-weight: 700; text-align: center" id="mg-celular-titulo">Lo que le llega a su celular</p>
-          <div class="celular-bloqueo" role="img" id="mg-celular"></div>
+          <div class="celular-bloqueo" role="img" id="mg-celular" aria-label="Celular con los mensajes de WhatsApp que le llegan"></div>
         </aside>
       </div>
     </section>
