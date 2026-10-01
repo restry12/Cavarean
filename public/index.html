@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="es-CL">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SABERES · Aprenda, enseñe y deje su huella</title>
+  <meta name="description" content="Enciclopedia por voz para personas de 50+: aprenda paso a paso, enseñe lo que sabe y deje su huella.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body class="vista-mayores">
+
+  <!-- Barra superior fija: selector de vista -->
+  <header class="barra">
+    <div class="marca" aria-hidden="true">SABERES</div>
+    <div class="selector-vista" role="group" aria-label="Elegir vista">
+      <button type="button" id="vista-mayores" class="vista-btn" aria-pressed="true">👵 Vista personas mayores</button>
+      <button type="button" id="vista-jovenes" class="vista-btn" aria-pressed="false">🧑 Vista jóvenes</button>
+    </div>
+    <button type="button" id="btn-casa" class="btn-casa" hidden>🏠 Volver al inicio</button>
+    <span id="aviso-mock" class="aviso-mock" hidden>Modo simulado</span>
+  </header>
+
+  <main id="principal">
+
+    <!-- 1. Bienvenida -->
+    <section id="bienvenida" class="pantalla">
+      <div class="logo" aria-hidden="true">📚</div>
+      <h1 class="titulo-logo" tabindex="-1">SABERES</h1>
+      <p class="lema">Aprenda, enseñe y deje su huella</p>
+      <button type="button" id="btn-empezar" class="btn btn-principal btn-gigante">Empezar</button>
+      <button type="button" id="btn-tengo-cuenta" class="btn btn-secundario">Ya tengo cuenta</button>
+      <p class="nota">La aplicación le va a hablar y a escuchar. Suba el volumen y, si su computador lo pide, permita usar el micrófono.</p>
+    </section>
+
+    <!-- 2. Registro (y entrar) por voz -->
+    <section id="registro" class="pantalla" hidden>
+      <p id="registro-progreso" class="progreso-texto"></p>
+      <h2 id="registro-pregunta" class="pregunta-grande" tabindex="-1"></h2>
+      <p id="registro-respuesta" class="respuesta-dicha" hidden></p>
+      <div id="registro-perfil" class="tarjeta-perfil" hidden></div>
+    </section>
+
+    <!-- 3. Inicio -->
+    <section id="inicio" class="pantalla" hidden>
+      <h2 id="inicio-saludo" class="saludo" tabindex="-1">Hola</h2>
+      <p class="indicacion">¿Qué quiere hacer hoy? Toque un botón o dígalo en voz alta.</p>
+      <div class="menu-grande">
+        <button type="button" class="btn btn-menu btn-principal" data-ir="aprender">
+          <span class="icono" aria-hidden="true">🎓</span><span>Aprender</span>
+        </button>
+        <button type="button" class="btn btn-menu btn-azul" data-ir="ensenar">
+          <span class="icono" aria-hidden="true">🎙️</span><span>Quiero enseñar</span>
+        </button>
+        <button type="button" class="btn btn-menu btn-secundario" data-ir="mis-guias">
+          <span class="icono" aria-hidden="true">⭐</span><span>Mis guías</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 4. Aprender -->
+    <section id="aprender" class="pantalla" hidden>
+      <h2 class="titulo-pantalla" tabindex="-1">Aprender</h2>
+      <button type="button" id="btn-decir-tema" class="btn btn-principal btn-gigante">🎤 Dígame qué quiere aprender</button>
+      <h3 class="subtitulo-seccion">O elija una guía</h3>
+      <div id="lista-aprender" class="lista-tarjetas"></div>
+    </section>
+
+    <!-- 5. Guía paso a paso (compartida con jóvenes) -->
+    <section id="guia" class="pantalla" hidden>
+      <div class="guia-cabecera">
+        <span id="guia-avatar"></span>
+        <div>
+          <p id="guia-autor" class="guia-autor"></p>
+          <p id="guia-comuna" class="guia-comuna"></p>
+        </div>
+      </div>
+      <h2 id="guia-titulo" class="guia-titulo" tabindex="-1"></h2>
+      <div class="progreso">
+        <p id="guia-progreso-texto" class="progreso-texto"></p>
+        <div id="guia-barra" class="barra-progreso" role="progressbar" aria-label="Avance de la guía" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div id="guia-barra-relleno" class="barra-relleno"></div>
+        </div>
+      </div>
+      <div id="guia-paso" class="paso-grande" aria-live="polite"></div>
+      <div id="guia-ayuda" class="ayuda-ia" hidden></div>
+    </section>
+
+    <!-- 6. Enseñar -->
+    <section id="ensenar" class="pantalla" hidden>
+      <h2 class="titulo-pantalla" tabindex="-1">Quiero enseñar</h2>
+      <div id="ensenar-grabacion" class="ensenar-grabacion">
+        <p class="indicacion">Cuénteme lo que quiere enseñar, como si se lo explicara a un nieto. Diga qué se necesita y cómo se hace, paso por paso.</p>
+        <button type="button" id="btn-terminar" class="btn btn-grabar" disabled>Escuche las instrucciones…</button>
+        <p id="ensenar-aviso-mic" class="aviso" hidden>El micrófono no está disponible. Escriba aquí lo que quiere enseñar y toque «Terminé».</p>
+        <label for="transcripcion" class="etiqueta">Lo que voy escuchando:</label>
+        <textarea id="transcripcion" class="transcripcion" rows="5" readonly></textarea>
+      </div>
+      <div id="ensenar-resultado" hidden></div>
+    </section>
+
+    <!-- 7. Mis guías -->
+    <section id="mis-guias" class="pantalla" hidden>
+      <h2 class="titulo-pantalla" tabindex="-1">Mis guías</h2>
+      <div class="contador">
+        <span id="contador-numero" class="contador-numero">0</span>
+        <span id="contador-texto" class="contador-texto">personas aprendieron con usted</span>
+      </div>
+      <div id="lista-mis-guias" class="lista-tarjetas"></div>
+    </section>
+
+    <!-- Vista jóvenes -->
+    <section id="jovenes" class="pantalla" hidden>
+      <div class="jovenes-cabecera">
+        <h2 tabindex="-1">Aprenda de quienes saben</h2>
+        <p>Guías contadas por personas mayores de todo Chile. Sígalas paso a paso y, al terminar, deles las gracias: les llega un WhatsApp.</p>
+      </div>
+      <div class="jovenes-herramientas">
+        <label class="campo">
+          <span>Su nombre (para dar las gracias)</span>
+          <input id="nombre-joven" type="text" autocomplete="given-name" placeholder="Ej: Tomás">
+        </label>
+        <label class="campo">
+          <span>Buscar una guía</span>
+          <input id="buscador" type="search" placeholder="Pan, tomates, WhatsApp…">
+        </label>
+      </div>
+      <div id="filtros" class="filtros" role="group" aria-label="Filtrar por categoría"></div>
+      <div id="lista-jovenes" class="grilla-jovenes"></div>
+    </section>
+
+    <!-- Botones de respuesta (Listo, Sí/No, campo de texto…). Los dibuja app.js -->
+    <div id="controles" class="controles"></div>
+  </main>
+
+  <!-- Subtítulos fijos: todo lo que la app dice -->
+  <footer id="subtitulos" class="subtitulos" aria-live="polite">
+    <span id="estado" class="estado" hidden></span>
+    <p id="subtitulo" class="subtitulo"></p>
+  </footer>
+
+  <script src="mock.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
