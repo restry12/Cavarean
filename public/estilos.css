@@ -460,6 +460,31 @@ body[data-barra="joven"] .lectura { font-size: 20px; }
 }
 
 /* Sin animaciones si la persona lo prefiere */
+/* Pantallas bajas (laptops): que todo quepa sin hacer scroll, con la misma letra grande.
+   Solo se achican espacios, el micrófono y las barras; el texto base no cambia. */
+@media (min-width: 761px) and (max-height: 1100px) {
+  .util-fila { min-height: 52px; padding-top: 4px; padding-bottom: 4px; font-size: 17px; }
+  .barra-principal { padding-top: 2px; padding-bottom: 2px; }
+  .barra-principal .marca { min-height: 52px; }
+  .pantalla-col { gap: 16px; padding-top: 14px; padding-bottom: 24px; }
+  .bubble { padding: 14px 22px; }
+  .bubble h1 { font-size: 1.45em; line-height: 1.1; }
+  .dice > .speaker, .dice > .speaker-boton { width: 56px; height: 56px; }
+  .mic-caja { padding-top: 4px; gap: 4px; }
+  .mic-caja .mic { margin-bottom: 6px; }
+  .sb .mic:not(.sm) { width: 96px; height: 96px; border-width: 4px; }
+  .sb .mic:not(.sm) .mic-ico svg { width: 44px; height: 44px; }
+  .mic-ayuda { display: none; }
+  .oido { padding: 12px 20px; }
+  .oido-texto { font-size: 1.1em; margin-top: 2px; }
+  .escribir { gap: 6px; }
+  .field { min-height: 60px; padding: 10px 18px; }
+  .lectura-fila { min-height: 0; padding-top: 10px; padding-bottom: 10px; gap: 14px; }
+  .lectura { font-size: 22px; }
+  .subtitulo { max-height: 2.9em; }
+  .lectura .speaker { width: 52px; height: 52px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sb *, .sb *::before, .sb *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
   html { scroll-behavior: auto; }

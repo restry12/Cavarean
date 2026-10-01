@@ -382,7 +382,9 @@ function micEstado(boton, estado, etiqueta) {
 
 function mostrarOido(z, titulo, texto, escuchando) {
   const caja = z.querySelector('[data-oido]');
-  caja.hidden = false;
+  // Escuchando sin nada todavía: el micrófono ya dice «La escucho…», no hace falta un recuadro vacío
+  caja.hidden = escuchando && !String(texto).trim();
+  if (caja.hidden) return;
   caja.querySelector('[data-oido-titulo]').textContent = titulo;
   caja.querySelector('[data-oido-texto]').textContent = texto;
   caja.querySelector('[data-caret]').hidden = !escuchando;
