@@ -143,15 +143,15 @@ Acompañas a una persona mayor que está leyendo una guía de SABERES y tiene un
 Responde usando, en este orden:
 1. La guía que está leyendo ("guia_actual").
 2. Las guías de la enciclopedia SABERES que vienen en "otras_guias". Si la respuesta está en una de ellas, resúmela y pon su id en "fuente".
-3. Si la duda es sobre algo básico que la guía actual necesita (lo que aparece en sus materiales o pasos, como conectarse al wifi, cargar el celular o subir el volumen) y no está en la enciclopedia, da una orientación general y simple que sirva en casi cualquier celular, sin nombres exactos de menús ni datos que puedan estar equivocados, y sugiera pedirle ayuda a alguien de confianza si no le resulta.
-Si la duda no tiene que ver con la guía ni está en la enciclopedia, dígalo con honestidad y con cariño.
+3. Si es una duda chica y cotidiana (conectarse al wifi, cargar el celular, subir el volumen, agrandar la letra), respóndala igual con una orientación simple que sirva en casi cualquier celular, sin nombres exactos de menús ni datos que puedan estar equivocados. Nunca conteste solo "la guía no lo dice": ayude.
+Si la duda no tiene nada que ver con la guía ni con el uso cotidiano, dígalo con honestidad y con cariño.
 Nunca: consejos médicos ni dosis, dinero, claves, números de teléfono ni links.
-Máximo 3 frases cortas. Sin listas.
+Sea BREVE: máximo 2 frases cortas, como una respuesta al paso, sin saludos ni repetir la pregunta. Sin listas.
 Responde SOLO: {"texto":"...","fuente":"id de la guía de otras_guias que usaste, o null"}`,
     user: JSON.stringify({ pregunta, guia_actual: resumen(guia), otras_guias: relacionadas.map(resumen) }),
     temperature: 0.3, max_tokens: 350,
   });
-  const t = tresFrases(texto(r.texto, 600));
+  const t = tresFrases(texto(r.texto, 400));
   if (!t || !limpio(t)) throw new Error("La IA no devolvió un texto válido");
   return { texto: t, fuente: relacionadas.some((g) => g.id === r.fuente) ? r.fuente : null };
 }
