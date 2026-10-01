@@ -62,7 +62,8 @@ const CONTACTO = /https?:\/\/|www\.|\b[\w-]+\.(?:cl|com|net|org|ly)\b|(?:\d[\s.-
 const limpio = (s) => !CONTACTO.test(s);
 const tresFrases = (s) => (s.match(/[^.!?]+[.!?]*/g) || [s]).slice(0, 3).join("").trim();
 // "TOMÁS" o "tomás" → "Tomás"; "de la" queda en minúscula
-const tipoNombre = (s) => s.toLowerCase().replace(/(^|\s)(?!(?:de|del|la|las|los|y)\s)(\p{L})/gu, (m, a, b) => a + b.toUpperCase());
+const tipoNombre = (s) => s.toLowerCase().replace(/(^|\s)(?!(?:de|del|la|las|los|y)\s)(\p{L})/gu, (m, a, b) => a + b.toUpperCase())
+  .replace(/^\p{L}/u, (c) => c.toUpperCase());
 // La IA a veces junta las claves en un solo texto: se separan en palabras sueltas
 const claves = (x) => [...new Set((Array.isArray(x) ? x : [x]).join(" ").toLowerCase()
   .normalize("NFD").replace(/[̀-ͯ]/g, "").split(/[^a-zñ0-9]+/).filter((w) => w.length > 2))].slice(0, 15);

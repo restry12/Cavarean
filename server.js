@@ -55,7 +55,7 @@ app.post("/api/registro", async (req, res) => {
     comuna: perfil.comuna,
     intereses: perfil.intereses,
     saberes: perfil.saberes,
-    palabra_clave: norm(r.clave),
+    palabra_clave: String(r.clave || "").trim().toLowerCase().replace(/[.!?¡¿]/g, ""),
     telefono: telefonoLimpio(r.telefono),
     ensenados: 0,
   };
