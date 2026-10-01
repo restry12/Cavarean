@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "interfaz", "runtimeExecutable": "python3", "runtimeArgs": ["-m", "http.server", "5173", "-d", "public"], "port": 5173 }
+  ]
+}
