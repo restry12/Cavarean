@@ -392,6 +392,20 @@ function ocultarOido(z) {
   z.querySelector('[data-oido]').hidden = true;
 }
 
+// Deja la zona de voz como nueva: sin «Usted dijo», micrófono en reposo y campo vacío.
+// Se usa al pasar a otra pregunta, para que no quede a la vista la respuesta anterior.
+function limpiarZona(z) {
+  if (!z) return;
+  detenerEscucha();
+  ocultarOido(z);
+  const mic = z.querySelector('[data-mic]');
+  if (mic) micEstado(mic, 'idle', micOk ? 'Toque el micrófono para hablar' : 'El micrófono no está disponible. Puede escribir aquí abajo.');
+  const campo = z.querySelector('[data-campo]');
+  if (campo) campo.value = '';
+  const controles = z.querySelector('[data-controles]');
+  if (controles) controles.innerHTML = '';
+}
+
 // Pide una respuesta por voz o escrita (las dos opciones a la vista). Resuelve { texto, escrito }
 function pedirRespuesta({ etiqueta = 'O escriba su respuesta', boton = 'Enviar', continuo = false } = {}) {
   const z = zonaActiva();
@@ -464,7 +478,8 @@ function pedirRespuesta({ etiqueta = 'O escriba su respuesta', boton = 'Enviar',
       const v = campo.value.trim();
       if (v) fin(v, true); else campo.focus();
     };
-    if (micOk) oir();
+    // Medio segundo antes de escuchar: así no se cuela un «sí» de la pregunta anterior
+    if (micOk) pausa(500).then(oir);
   });
 }
 
@@ -1012,6 +1027,7 @@ async function flujoEntrar(g) {
   let { nombre, clave } = r.escrito ? { nombre: limpiarRespuesta('nombre', r.texto), clave: '' } : separarNombreYClave(r.texto);
   if (!clave) {
     dice.textContent = `Gracias${nombre ? ', ' + primerNombre(nombre) : ''}. ¿Y su palabra clave?`;
+    limpiarZona(zonaActiva());
     await hablar(dice.textContent);
     r = await pedirRespuesta({ etiqueta: 'O escriba su palabra clave', boton: 'Entrar' });
     clave = limpiarRespuesta('clave', r.texto);
@@ -1082,6 +1098,7 @@ async function flujoRegistro(g) {
     estadoRegistro.paso = i;
     const p = PREGUNTAS_REGISTRO[i];
     pintarPregunta(i);
+    limpiarZona(zonaActiva());
     await hablar((i === 0 ? 'Le doy la bienvenida a SABERES. ' : '') + `${p.q} ${p.h}`);
     while (true) {
       const r = await pedirRespuesta({ etiqueta: 'O escriba su respuesta' });
@@ -1092,6 +1109,7 @@ async function flujoRegistro(g) {
       if (z) mostrarOido(z, 'Usted dijo:', valor, false);
       await hablar(p.clave === 'clave' ? 'Anoté su palabra clave. ¿Está bien?' : `Escuché: ${valor}. ¿Está bien?`);
       if (await confirmar({ si: 'Sí, está bien', no: 'Repetir' })) { estadoRegistro.respuestas[p.clave] = valor; break; }
+      limpiarZona(zonaActiva());
       await hablar(`Bueno, de nuevo. ${p.q}`);
     }
   }
