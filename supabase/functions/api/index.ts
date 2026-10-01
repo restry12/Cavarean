@@ -180,10 +180,16 @@ async function descartar({ id, usuarioId }: any) {
 }
 
 // ---------- El gracias al autor (envío y hitos en avisos.js) ----------
-async function aprendi({ guiaId, aprendiz, mensaje }: any) {
-  const { data: total, error } = await db.rpc("sumar_aprendieron", { guia_id: guiaId ?? "" });
+async function aprendi({ guiaId, aprendiz, mensaje }: any, req: Request) {
+  // Cuenta una vez por persona (IP) y guía cada 10 minutos: así nadie infla el
+  // contador ni dispara WhatsApp en los hitos tocando "¡Aprendí!" muchas veces
+  const origen = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim();
+  const { data, error } = await db.rpc("contar_aprendizaje", { p_guia: guiaId ?? "", p_origen: origen });
   if (error) throw error;
-  if (total == null) return json({ ok: false, error: "No encontré esa guía." }, 404);
+  const fila = Array.isArray(data) ? data[0] : data;
+  if (!fila) return json({ ok: false, error: "No encontré esa guía." }, 404);
+  const total = fila.total;
+  if (!fila.sumado) return json({ ok: true, aprendieron: total });
 
   const { data: g } = await db.from("guias").select("titulo,autor,autor_id").eq("id", guiaId).single();
   const { data: autor } = await db.from("usuarios").select("telefono").eq("id", g!.autor_id ?? "").maybeSingle();
@@ -211,7 +217,7 @@ async function voz({ texto }: any) {
 
 // ---------- Enrutador ----------
 // deno-lint-ignore no-explicit-any
-const RUTAS: Record<string, (body: any) => Promise<Response>> = {
+const RUTAS: Record<string, (body: any, req: Request) => Promise<Response>> = {
   "POST /registro": registro,
   "POST /entrar": entrar,
   "POST /buscar": buscar,
@@ -231,7 +237,7 @@ Deno.serve(async (req) => {
   if (!manejar) return json({ error: "Ruta no encontrada." }, 404);
   try {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
-    return await manejar(body);
+    return await manejar(body, req);
   } catch (e) {
     console.error(`[${ruta}]`, e);
     return json({ error: "Algo falló en el servidor." }, 500);

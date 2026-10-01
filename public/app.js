@@ -1399,6 +1399,7 @@ function pintarMateriales(guia) {
   const adv = guia.advertencias || [];
   $('#g-num').textContent = 'Antes de empezar';
   pintarPuntos($('#g-puntos'), (guia.pasos || []).length, -1);
+  $('#g-puntos').setAttribute('aria-label', `Antes de empezar: 0 de ${(guia.pasos || []).length} pasos`);
   $('#g-paso').innerHTML = `<span class="paso-num" style="background: #A9461F">${icono('check', 34)}</span>
     <h2 class="paso-titulo">Antes de empezar</h2>
     ${mats.length ? `<p class="paso-cuerpo">Va a necesitar:</p><div class="chips-mats">${mats.map(m => `<span>${esc(m)}</span>`).join('')}</div>` : '<p class="paso-cuerpo">Prepárese: vamos a empezar.</p>'}
@@ -2051,12 +2052,30 @@ async function flujoExperiencia() {
 /* =========================================================
    Escuchar esta página · tamaño de letra · teclado
    ========================================================= */
+// Todo lo que se ve en la pantalla, en orden y una sola vez: títulos, globos, listas,
+// tarjetas y botones grandes con descripción. Se saltan controles cortos y ayudas.
+const NO_LEER = /^(SABERES le (dice|pregunta)|o presione la barra|La escucho|Escuchando|O escriba)/i;
+
 function textoDePantalla() {
   const sec = document.querySelector('.pantalla:not([hidden])');
   if (!sec) return '';
-  const selector = document.body.dataset.barra === 'joven' ? 'h1, h1 + p, .tile-guia-titulo, .steprow, .bloque, .leccion-card h2' : 'h1, .bubble p:not(.bubble-titulo)';
-  return [...sec.querySelectorAll(selector)]
-    .filter(visible).map(e => e.textContent.trim()).filter(Boolean).join('. ').replace(/\.\./g, '.');
+  const vistos = new Set();
+  const partes = [];
+  for (const e of sec.querySelectorAll('h1, h2, h3, h4, p, li, blockquote, .steprow, button, a')) {
+    if (!visible(e) || !e.getClientRects().length || e.closest('[aria-hidden="true"], label, .speaker-boton')) continue;
+    const esControl = e.matches('button, a');
+    // Un botón o link solo se lee si es una tarjeta con descripción (ej. «Quiero aprender · Le enseño…»)
+    if (esControl && e.innerText.trim().split(/\s+/).length < 5) continue;
+    // Se lee el elemento más externo que tenga el texto; lo de adentro ya va incluido
+    if (!esControl && e.parentElement.closest('li, blockquote, .steprow, button, a') && sec.contains(e.parentElement)) continue;
+    // Cada línea visible (título, descripción) termina en punto: así la voz hace la pausa
+    const t = e.innerText.split(/\n+/).map(s => s.replace(/\s+/g, ' ').trim()).filter(Boolean)
+      .map(s => (/[.!?…:»"]$/.test(s) ? s : s + '.')).join(' ');
+    if (t.length < 3 || NO_LEER.test(t) || vistos.has(t)) continue;
+    vistos.add(t);
+    partes.push(t);
+  }
+  return partes.join(' ');
 }
 
 function alternarLectura() {
