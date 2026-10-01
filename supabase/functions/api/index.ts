@@ -1,0 +1,246 @@
+// =========================================================
+// SABERES · Backend (Supabase Edge Function "api")
+// Atiende todos los /api/* que usa el frontend. Los datos viven en
+// Postgres (tablas usuarios y guias, con RLS: solo esta función entra).
+// La IA se usa solo en /ensenar (ordenar) y /ayuda (explicar).
+// =========================================================
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { ordenarGuia, explicarPaso, tipoNombre } from "./ia.js";
+
+const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
+  auth: { persistSession: false },
+});
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+const json = (datos: unknown, status = 200) =>
+  new Response(JSON.stringify(datos), { status, headers: { ...CORS, "Content-Type": "application/json" } });
+
+// ---------- Utilidades ----------
+const norm = (s: unknown) => String(s ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+  .replace(/[^a-z0-9ñ\s]/g, " ").replace(/\s+/g, " ").trim();
+const mayus = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
+// Temas delicados: se revisan siempre, aunque la IA diga "bajo"
+const DELICADO = /\b(gas|electric\w*|enchufe\w*|cable\w*|corriente|remedio\w*|medicament\w*|pastilla\w*|dosis|fiebre|escalera\w*|cloro|veneno\w*|insulina|soldar|taladro)\b/;
+
+function telefonoLimpio(t: unknown) {
+  const d = String(t ?? "").replace(/[^\d+]/g, "");
+  if (d.replace("+", "").length < 8) return "";
+  if (/^9\d{8}$/.test(d)) return "+56" + d;
+  if (/^569\d{8}$/.test(d)) return "+" + d;
+  return d;
+}
+
+// La base usa snake_case; el frontend espera la forma de mock.js
+// deno-lint-ignore no-explicit-any
+const aGuia = ({ autor_id, relato, creado_en, ...g }: any) => ({ ...g, autorId: autor_id });
+// deno-lint-ignore no-explicit-any
+const aUsuario = ({ creado_en, ...u }: any) => u;
+const COLUMNAS_GUIA = "id,titulo,categoria,autor,autor_id,edad,comuna,foto,materiales,pasos,ayudas,consejos,advertencias,claves,riesgo,estado,aprendieron,resumen_voz";
+
+async function leerGuias(soloPublicadas = false) {
+  let q = db.from("guias").select(COLUMNAS_GUIA).order("creado_en", { ascending: false });
+  if (soloPublicadas) q = q.eq("estado", "publicada");
+  const { data, error } = await q;
+  if (error) throw error;
+  return data.map(aGuia);
+}
+
+// ---------- Registro y entrada (sin IA) ----------
+async function registro({ respuestas: r = {} }: any) {
+  const nombre = tipoNombre(String(r.nombre ?? "").trim());
+  if (!nombre) return json({ error: "Me faltó su nombre." }, 400);
+  const fila = {
+    nombre,
+    comuna: tipoNombre(String(r.comuna ?? "").trim()),
+    intereses: r.aprender ? [String(r.aprender).trim()] : [],
+    saberes: r.ensenar ? [String(r.ensenar).trim()] : [],
+    palabra_clave: String(r.clave ?? "").trim().toLowerCase().replace(/[.!?¡¿]/g, ""),
+    telefono: telefonoLimpio(r.telefono),
+  };
+  const { data: u, error } = await db.from("usuarios").insert(fila).select().single();
+  if (error) throw error;
+  u.bienvenida = [
+    `¡Le damos la bienvenida a SABERES, ${u.nombre}!`,
+    u.comuna && `Usted es de ${u.comuna}.`,
+    r.aprender && `Quiere aprender ${r.aprender}.`,
+    r.ensenar && `Y puede enseñar ${r.ensenar}; eso le va a servir a mucha gente.`,
+    u.palabra_clave && `Su palabra clave es «${u.palabra_clave}». Guárdela bien.`,
+    "Ya puede empezar.",
+  ].filter(Boolean).join(" ");
+  return json(aUsuario(u));
+}
+
+async function entrar({ nombre, clave }: any) {
+  const n = norm(nombre), c = norm(clave);
+  const { data, error } = await db.from("usuarios").select("*").neq("palabra_clave", "");
+  if (error) throw error;
+  const u = data.find((x) => {
+    const nx = norm(x.nombre), k = norm(x.palabra_clave);
+    const mismoNombre = nx === n || nx.split(" ")[0] === n.split(" ")[0];
+    return mismoNombre && k && (c === k || c.split(" ").includes(k));
+  });
+  if (!u) return json({ error: "No encontré una cuenta con ese nombre y esa palabra clave." }, 404);
+  return json(aUsuario(u));
+}
+
+// ---------- Buscar (sin IA: palabras en común con título, categoría y claves) ----------
+const VACIAS = new Set(["quiero", "aprender", "como", "hacer", "para", "una", "uno", "las", "los", "del", "que",
+  "por", "favor", "gustaria", "saber", "ensename", "ensenar", "necesito", "algo", "sobre", "mas", "menos"]);
+
+async function buscar({ pregunta = "" }: any) {
+  const palabras = norm(pregunta).split(" ").filter((w) => w.length > 2 && !VACIAS.has(w));
+  let mejor = null, puntaje = 0;
+  for (const g of await leerGuias(true)) {
+    const t = norm([g.titulo, g.categoria, ...(g.claves || [])].join(" "));
+    const p = palabras.reduce((s, w) => s + (t.includes(w) || t.includes(w.slice(0, -1)) ? 1 : 0), 0);
+    if (p > puntaje) { mejor = g; puntaje = p; }
+  }
+  return json(mejor || { error: "Todavía no tengo una guía sobre eso." });
+}
+
+// ---------- Explicar (IA) ----------
+async function ayuda(body: any) {
+  const { paso = "", duda = "No entendí" } = body;
+  // Se usa la guía guardada, no la que manda el navegador
+  const { data } = await db.from("guias").select(COLUMNAS_GUIA).eq("id", body.guia?.id ?? "").maybeSingle();
+  const guia = data ? aGuia(data) : body.guia || {};
+  const i = (guia.pasos || []).indexOf(paso);
+  const ayudaBase = i >= 0 ? guia.ayudas?.[i] : null;
+  try {
+    return json({ texto: await explicarPaso({ guia, paso, duda, ayudaBase }) });
+  } catch (e) {
+    console.warn("[ayuda] sin IA:", (e as Error).message);
+    const texto = ayudaBase ? `Se lo explico de otra forma. ${ayudaBase}`
+      : String(paso).startsWith("Materiales") ? "No se preocupe si le falta algo. Puede reemplazarlo por algo parecido que tenga en casa."
+      : `No se preocupe, vamos de a poco. Lo importante de este paso es esto: ${paso} Hágalo con calma; no hay apuro.`;
+    return json({ texto });
+  }
+}
+
+// ---------- Ordenar (IA) ----------
+function guiaSinIA(relato: string, autor: string) {
+  const frases = relato.split(/(?<=[.!?;])\s+|\s+(?:después|luego|entonces)\s+/i)
+    .map((f) => f.trim()).filter((f) => f.split(" ").length >= 3);
+  const pasos = (frases.length ? frases : [relato]).slice(0, 10).map((f) => mayus(f.replace(/[.;]*$/, ".")));
+  return {
+    titulo: `Lo que sabe ${autor}`, categoria: "hogar", materiales: [], pasos, ayudas: pasos,
+    consejos: ["Hágalo con calma: la práctica hace al maestro."], advertencias: [] as string[], claves: [],
+    riesgo: "bajo", resumen_voz: `Muy bien, ${autor}. Ordené su guía en ${pasos.length} pasos.`,
+  };
+}
+
+async function ensenar(body: any) {
+  const relato = String(body.relato ?? "").trim().slice(0, 6000);
+  if (relato.split(/\s+/).length < 4) return json({ error: "El relato es muy corto." }, 400);
+  const { data: u } = await db.from("usuarios").select("*").eq("id", body.usuarioId ?? "").maybeSingle();
+  if (!u) return json({ error: "No encontré su cuenta." }, 404);
+
+  let g;
+  try {
+    g = await ordenarGuia(relato, u.nombre);
+  } catch (e) {
+    console.warn("[ensenar] sin IA:", (e as Error).message);
+    g = guiaSinIA(relato, u.nombre);
+  }
+  if (DELICADO.test(norm(relato + " " + g.titulo))) g.riesgo = "alto";
+  if (g.riesgo === "alto" && !g.advertencias.length) {
+    g.advertencias.push("Es un tema delicado: hágalo con cuidado y, ante cualquier duda, pida ayuda a alguien con experiencia.");
+  }
+
+  const { data, error } = await db.from("guias").insert({
+    ...g, relato,
+    autor: u.nombre, autor_id: u.id, edad: u.edad, comuna: u.comuna,
+    estado: g.riesgo === "alto" ? "en revisión" : "publicada",
+  }).select(COLUMNAS_GUIA).single();
+  if (error) throw error;
+  await db.from("usuarios").update({ ensenados: (u.ensenados || 0) + 1 }).eq("id", u.id);
+  return json(aGuia(data));
+}
+
+// "Corregir": la autora descarta la guía recién creada antes de publicarla
+async function descartar({ id, usuarioId }: any) {
+  const { data, error } = await db.from("guias").delete()
+    .eq("id", id ?? "").eq("autor_id", usuarioId ?? "").eq("aprendieron", 0).select("id");
+  if (error) throw error;
+  if (!data.length) return json({ ok: false, error: "No encontré esa guía." }, 404);
+  const { data: u } = await db.from("usuarios").select("ensenados").eq("id", usuarioId).maybeSingle();
+  if (u) await db.from("usuarios").update({ ensenados: Math.max(0, u.ensenados - 1) }).eq("id", usuarioId);
+  return json({ ok: true });
+}
+
+// ---------- El gracias al autor ----------
+async function avisarAutor(to: string, texto: string) {
+  const zavu = Deno.env.get("ZAVUDEV_API_KEY"), tg = Deno.env.get("TELEGRAM_TOKEN");
+  try {
+    if (Deno.env.get("AVISO") === "zavu" && zavu && to) {
+      // Verificar endpoint y campos en la documentación de Zavu antes de la demo
+      const r = await fetch("https://api.zavu.dev/v1/messages", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${zavu}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ to, text: texto, channel: Deno.env.get("ZAVU_CANAL") || "whatsapp" }),
+        signal: AbortSignal.timeout(9000),
+      });
+      if (r.ok) return;
+      console.warn("[aviso] Zavu respondió", r.status);
+    }
+    if (tg) {
+      const r = await fetch(`https://api.telegram.org/bot${tg}/sendMessage`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: Deno.env.get("TELEGRAM_CHAT_ID"), text: texto }),
+        signal: AbortSignal.timeout(9000),
+      });
+      if (r.ok) return;
+      console.warn("[aviso] Telegram respondió", r.status);
+    }
+    console.info(`[aviso] simulado: ${texto}`);
+  } catch (e) { console.warn("[aviso] falló:", (e as Error).message); }
+}
+
+async function aprendi({ guiaId, aprendiz }: any) {
+  const { data: total, error } = await db.rpc("sumar_aprendieron", { guia_id: guiaId ?? "" });
+  if (error) throw error;
+  if (total == null) return json({ ok: false, error: "No encontré esa guía." }, 404);
+
+  const { data: g } = await db.from("guias").select("titulo,autor_id").eq("id", guiaId).single();
+  const { data: autor } = await db.from("usuarios").select("telefono").eq("id", g!.autor_id ?? "").maybeSingle();
+  const nombre = String(aprendiz || "Alguien").trim().slice(0, 40);
+  const texto = `${nombre} aprendió «${g!.titulo}» gracias a usted. ¡Gracias por enseñar en SABERES! 💛`;
+  // Se responde al tiro; el mensaje sigue saliendo en segundo plano
+  const envio = avisarAutor(autor?.telefono || Deno.env.get("NUMERO_DEMO") || "", texto);
+  // @ts-ignore EdgeRuntime existe en Supabase
+  globalThis.EdgeRuntime?.waitUntil(envio);
+  return json({ ok: true, aprendieron: total });
+}
+
+// ---------- Enrutador ----------
+// deno-lint-ignore no-explicit-any
+const RUTAS: Record<string, (body: any) => Promise<Response>> = {
+  "POST /registro": registro,
+  "POST /entrar": entrar,
+  "POST /buscar": buscar,
+  "POST /ayuda": ayuda,
+  "POST /ensenar": ensenar,
+  "POST /descartar": descartar,
+  "POST /aprendi": aprendi,
+  "GET /guias": async () => json(await leerGuias()),
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  // La URL llega como /api/<ruta> (nombre de la función + ruta)
+  const ruta = new URL(req.url).pathname.replace(/^.*?\/api(?=\/|$)/, "") || "/";
+  const manejar = RUTAS[`${req.method} ${ruta}`];
+  if (!manejar) return json({ error: "Ruta no encontrada." }, 404);
+  try {
+    const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
+    return await manejar(body);
+  } catch (e) {
+    console.error(`[${ruta}]`, e);
+    return json({ error: "Algo falló en el servidor." }, 500);
+  }
+});

@@ -453,7 +453,7 @@ async function pedirApi(metodo, url, body) {
   const ctrl = new AbortController();
   const reloj = setTimeout(() => ctrl.abort(), 10000);
   try {
-    const res = await fetch(url, {
+    const res = await fetch((window.SABERES_API || '') + url, {
       method: metodo,
       headers: body ? { 'Content-Type': 'application/json' } : undefined,
       body: body ? JSON.stringify(body) : undefined,
