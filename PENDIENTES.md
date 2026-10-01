@@ -42,13 +42,14 @@
   - `NUMERO_DEMO`: el número ya lo tiene P2 (está en su `.env` local). Con llave `zv_test_` ese celular debe estar inscrito como miembro del equipo en Zavu.
   - Opcional: `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID`.
   - No hace falta volver a desplegar: los secretos se leen solos.
-- [ ] **Seguridad** (encontrado en revisión automática; no bloquea la demo):
-  - `server.js` pega la URL tal cual a Supabase → con `../` se podría llegar a otras funciones del proyecto. *Arreglo rápido; espera a que se cierre el trabajo de voz, que también toca `server.js`.*
-  - `/aprendi` sin límite → se podría inflar el contador y disparar WhatsApp en los hitos. *Arreglo rápido en `index.ts`; mismo motivo.*
-  - `/ensenar` y `/descartar` confían en el `usuarioId` del navegador → se puede publicar o borrar a nombre de otra persona. *Necesita que el registro devuelva un token y que `app.js` lo mande: coordinar con P1.*
-- [ ] **Voz con Mistral Voxtral (en curso, sin commit):** hay cambios locales en `app.js`, `server.js`, `index.ts`, `voz.js` y `crear-voz.js`. Al terminarlos: commit en `andy-backend`, `npm run probar-ia` y desplegar la función `api` otra vez (agrega la ruta `/api/voz`).
+- [x] ~~Seguridad: `server.js` reenviaba cualquier ruta a Supabase~~ → ahora solo reenvía las rutas de `/api` conocidas (probado con `../` y `%2e%2e`: 404).
+- [x] ~~Seguridad: `/aprendi` sin límite~~ → cuenta 1 vez por persona (IP) y guía cada 10 minutos; si no suma, no manda WhatsApp (función SQL `contar_aprendizaje`, desplegada en la v10).
+- [ ] **Seguridad pendiente:** `/ensenar` y `/descartar` confían en el `usuarioId` del navegador → se puede publicar o borrar a nombre de otra persona. Necesita un token de sesión que devuelvan registro y entrar, y que `app.js` lo mande. **Se deja para después de la demo:** el menú de demo (tecla D) entra como Rosa sin token, así que exigirlo hoy rompería la presentación.
+- [x] ~~Voz con Mistral Voxtral~~ → en `main` y desplegada.
+- [x] ~~"Escuchar esta página" leía solo el título~~ → ahora lee todo el contenido visible; verificado en Chrome: 0 textos sin voz en las 20 pantallas.
 - [ ] Día de la demo: **maneja la vista de jóvenes**.
-- Para repetir la demo desde cero: `select public.reiniciar_demo();` en el SQL Editor de Supabase.
+- Para repetir la demo desde cero: `select public.reiniciar_demo();` en el SQL Editor de Supabase (también borra el registro de "¡Aprendí!", así el primero vuelve a avisar).
+- Ojo en los ensayos: desde un mismo computador, "¡Aprendí!" en la **misma guía** cuenta una sola vez cada 10 minutos. Usen una guía nueva o corran `reiniciar_demo()`.
 
 ## 🔌 P3 – Integraciones
 
