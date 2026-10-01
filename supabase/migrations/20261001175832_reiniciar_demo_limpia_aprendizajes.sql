@@ -1,5 +1,6 @@
 create or replace function public.reiniciar_demo()
 returns void language sql security invoker set search_path = '' as $$
+  delete from public.certificados;
   delete from public.aprendizajes;
   delete from public.guias where id not in ('g-videollamada','g-estafa','g-pan-amasado','g-tomates','g-boton');
   delete from public.usuarios where id not in ('u-rosa','u-equipo','u-luis','u-carmen');

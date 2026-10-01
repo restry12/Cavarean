@@ -40,6 +40,11 @@ const aGuia = ({ autor_id, relato, creado_en, telefono, ...g }: any) => ({ ...g,
 // deno-lint-ignore no-explicit-any
 const aUsuario = ({ creado_en, ...u }: any) => u;
 const COLUMNAS_GUIA = "id,titulo,categoria,autor,autor_id,edad,comuna,foto,materiales,pasos,ayudas,consejos,advertencias,claves,riesgo,estado,aprendieron,resumen_voz,media,transcripcion,origen";
+// deno-lint-ignore no-explicit-any
+const aCertificado = ({ guia_id, usuario_id, propietario_clave: _propietario, emitido_en, ...c }: any) => ({
+  ...c, guiaId: guia_id, usuarioId: usuario_id, emitidoEn: emitido_en,
+});
+const COLUMNAS_CERTIFICADO = "id,codigo,guia_id,usuario_id,propietario_clave,aprendiz,curso_titulo,autor,emitido_en";
 
 async function leerGuias(soloPublicadas = false) {
   let q = db.from("guias").select(COLUMNAS_GUIA).order("creado_en", { ascending: false });
@@ -190,32 +195,127 @@ async function descartar({ id, usuarioId }: any) {
   return json({ ok: true });
 }
 
-// ---------- El gracias al autor (envío y hitos en avisos.js) ----------
-async function aprendi({ guiaId, aprendiz, mensaje }: any, req: Request) {
-  // Cuenta una vez por persona (IP) y guía cada 10 minutos: así nadie infla el
-  // contador ni dispara WhatsApp en los hitos tocando "¡Aprendí!" muchas veces
-  const origen = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim();
-  const { data, error } = await db.rpc("contar_aprendizaje", { p_guia: guiaId ?? "", p_origen: origen });
-  if (error) throw error;
-  const fila = Array.isArray(data) ? data[0] : data;
-  if (!fila) return json({ ok: false, error: "No encontré esa guía." }, 404);
-  const total = fila.total;
-  if (!fila.sumado) return json({ ok: true, aprendieron: total });
+// ---------- Completar una guía, emitir certificado y agradecer ----------
+function clavePropietario(valor: unknown) {
+  return String(valor ?? "").replace(/[^a-zA-Z0-9:_-]/g, "").slice(0, 100);
+}
 
-  const { data: g } = await db.from("guias").select("titulo,autor,autor_id,telefono").eq("id", guiaId).single();
-  const { data: autor } = await db.from("usuarios").select("telefono").eq("id", g!.autor_id ?? "").maybeSingle();
+async function enviarAgradecimiento(g: any, total: number, aprendiz: unknown, mensaje: unknown) {
+  const { data: autor } = await db.from("usuarios").select("telefono").eq("id", g.autor_id ?? "").maybeSingle();
   const nombre = String(aprendiz || "Alguien").trim().slice(0, 40);
   // El mensaje del joven va al WhatsApp de una persona mayor: sin links ni teléfonos
   const nota = String(mensaje ?? "").replace(/\s+/g, " ").trim().slice(0, 200);
   const seguro = nota && !/https?:\/\/|www\.|\b[\w-]+\.(?:cl|com|net|org|ly)\b|(?:\d[\s.-]?){7,}/i.test(nota);
-  // Se responde al tiro; el mensaje (solo en hitos) sigue saliendo en segundo plano
-  const envio = avisarGracias({
-    telefono: autor?.telefono || g!.telefono, autor: g!.autor, titulo: g!.titulo,
+  return avisarGracias({
+    telefono: autor?.telefono || g.telefono, autor: g.autor, titulo: g.titulo,
     aprendiz: nombre, aprendieron: total, nota: seguro ? nota : "",
   });
+}
+
+async function completar(body: any, req?: Request) {
+  const guiaId = String(body.guiaId ?? "").slice(0, 80);
+  const propietario = clavePropietario(body.propietarioClave);
+  const usuarioId = String(body.usuarioId ?? "").slice(0, 80);
+  let aprendiz = String(body.aprendiz || "Participante").replace(/\s+/g, " ").trim().slice(0, 80);
+  if (!propietario) return json({ error: "No pude identificar dónde guardar su certificado." }, 400);
+
+  // Si hay una cuenta iniciada, el nombre del certificado siempre viene de ella.
+  // Así nadie puede reemplazarlo modificando el campo enviado por el navegador.
+  if (usuarioId) {
+    const { data: cuenta, error: errorCuenta } = await db.from("usuarios").select("nombre").eq("id", usuarioId).maybeSingle();
+    if (errorCuenta) throw errorCuenta;
+    if (!cuenta) return json({ error: "No encontré la cuenta para emitir el certificado." }, 404);
+    aprendiz = cuenta.nombre;
+  }
+
+  const { data: g, error: errorGuia } = await db.from("guias")
+    .select("id,titulo,autor,autor_id,telefono,aprendieron").eq("id", guiaId).maybeSingle();
+  if (errorGuia) throw errorGuia;
+  if (!g) return json({ error: "No encontré esa guía." }, 404);
+
+  const fila = {
+    codigo: `SAB-${crypto.randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase()}`,
+    guia_id: g.id,
+    usuario_id: usuarioId || null,
+    propietario_clave: propietario,
+    aprendiz,
+    curso_titulo: g.titulo,
+    autor: g.autor,
+  };
+  const { data: insertado, error: errorInsertar } = await db.from("certificados")
+    .insert(fila).select(COLUMNAS_CERTIFICADO).maybeSingle();
+
+  let certificado = insertado;
+  let nuevo = !!insertado;
+  if (errorInsertar) {
+    if (errorInsertar.code !== "23505") throw errorInsertar;
+    const { data: existente, error: errorExistente } = await db.from("certificados")
+      .select(COLUMNAS_CERTIFICADO).eq("guia_id", g.id).eq("propietario_clave", propietario).maybeSingle();
+    if (errorExistente) throw errorExistente;
+    if (!existente) throw errorInsertar;
+    certificado = existente;
+    // Un certificado emitido antes de iniciar sesión conserva su código y fecha,
+    // pero adopta el nombre oficial de la cuenta al volver a completarse.
+    if (usuarioId && (existente.aprendiz !== aprendiz || existente.usuario_id !== usuarioId)) {
+      const { data: actualizado, error: errorActualizar } = await db.from("certificados")
+        .update({ aprendiz, usuario_id: usuarioId }).eq("id", existente.id)
+        .select(COLUMNAS_CERTIFICADO).single();
+      if (errorActualizar) throw errorActualizar;
+      certificado = actualizado;
+    }
+    nuevo = false;
+  }
+
+  let total = Number(g.aprendieron) || 0;
+  let aprendizajeSumado = false;
+  if (nuevo) {
+    // Conserva el límite incorporado en main: una misma IP no puede inflar el
+    // contador ni disparar hitos repetidamente durante diez minutos.
+    const ip = (req?.headers.get("x-forwarded-for") ?? "").split(",")[0].trim();
+    const origen = ip || propietario;
+    const { data, error } = await db.rpc("contar_aprendizaje", { p_guia: g.id, p_origen: origen });
+    if (error) throw error;
+    const aprendizaje = Array.isArray(data) ? data[0] : data;
+    if (!aprendizaje) return json({ ok: false, error: "No encontré esa guía." }, 404);
+    total = Number(aprendizaje.total) || total;
+    aprendizajeSumado = !!aprendizaje.sumado;
+  }
+
+  if (body.agradecer && nuevo && aprendizajeSumado) {
+    const envio = enviarAgradecimiento(g, total, aprendiz, body.mensaje);
+    // @ts-ignore EdgeRuntime existe en Supabase
+    globalThis.EdgeRuntime?.waitUntil(envio);
+  }
+  return json({ ok: true, aprendieron: total, certificado: aCertificado(certificado), yaEmitido: !nuevo });
+}
+
+async function agradecer({ guiaId, aprendiz, mensaje }: any) {
+  const { data: g, error } = await db.from("guias")
+    .select("titulo,autor,autor_id,telefono,aprendieron").eq("id", guiaId ?? "").maybeSingle();
+  if (error) throw error;
+  if (!g) return json({ error: "No encontré esa guía." }, 404);
+  const envio = enviarAgradecimiento(g, Number(g.aprendieron) || 0, aprendiz, mensaje);
   // @ts-ignore EdgeRuntime existe en Supabase
   globalThis.EdgeRuntime?.waitUntil(envio);
-  return json({ ok: true, aprendieron: total });
+  return json({ ok: true });
+}
+
+async function certificados({ propietarioClave }: any) {
+  const propietario = clavePropietario(propietarioClave);
+  if (!propietario) return json([]);
+  const { data, error } = await db.from("certificados").select(COLUMNAS_CERTIFICADO)
+    .eq("propietario_clave", propietario).order("emitido_en", { ascending: false });
+  if (error) throw error;
+  return json((data || []).map(aCertificado));
+}
+
+// Compatibilidad con clientes anteriores: completa y agradece en una llamada.
+async function aprendi(body: any, req: Request) {
+  return completar({
+    ...body,
+    propietarioClave: body.propietarioClave || `legado:${crypto.randomUUID()}`,
+    agradecer: true,
+  }, req);
 }
 
 // ---------- Voz (Mistral Voxtral) ----------
@@ -235,6 +335,9 @@ const RUTAS: Record<string, (body: any, req: Request) => Promise<Response>> = {
   "POST /ayuda": ayuda,
   "POST /ensenar": ensenar,
   "POST /descartar": descartar,
+  "POST /completar": completar,
+  "POST /agradecer": agradecer,
+  "POST /certificados": certificados,
   "POST /aprendi": aprendi,
   "POST /voz": voz,
   "GET /guias": async () => json(await leerGuias()),

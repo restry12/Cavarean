@@ -64,7 +64,7 @@ app.use("/api", express.raw({ type: "*/*", limit: "1mb" }));
 
 // Solo se reenvían las rutas del backend: así nadie puede usar este servidor
 // (por ejemplo con "../") para llegar a otras funciones del proyecto.
-const RUTAS_API = /^\/api\/(registro|entrar|buscar|ayuda|ensenar|descartar|aprendi|voz|guias)$/;
+const RUTAS_API = /^\/api\/(registro|entrar|buscar|ayuda|ensenar|descartar|completar|agradecer|certificados|aprendi|voz|guias)$/;
 
 app.all("/api/*ruta", async (req, res) => {
   if (!RUTAS_API.test(req.path)) return res.status(404).json({ error: "Ruta no encontrada." });

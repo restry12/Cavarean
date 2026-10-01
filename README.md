@@ -32,7 +32,7 @@ Todo se usa **hablando**, incluso el registro.
 | Parte | Qué hace |
 |---|---|
 | **🗣️ Registro por voz** | La app pregunta nombre, comuna, a qué se dedicó, qué soñaba, qué sabe enseñar y una palabra clave, y arma el perfil sin que la persona teclee nada. |
-| **🎓 Aprendo** | La persona pide una guía hablando y la IA la da **paso a paso**: espera a que diga *"listo"* y entiende *"repita"*, *"más lento"* y *"no entendí"*. |
+| **🎓 Aprendo** | La persona pide una guía hablando y la IA la da **paso a paso**: espera a que diga *"listo"* y entiende *"repita"*, *"más lento"* y *"no entendí"*. Al completar el curso recibe un **certificado en la plataforma**, listo para descargar en PDF. |
 | **🎙️ Enseño** | La persona explica algo hablando o escribiendo, como si se lo contara a un nieto, y la IA lo convierte en una **guía ordenada** (materiales, pasos, consejos y advertencias) que se publica con su nombre. Si el dictado tiene errores o muletillas, la IA los corrige en silencio. |
 | **🤝 Conecto** | Los jóvenes buscan guías y aprenden de quien sabe. Al terminar dan las gracias y **al autor le llega un WhatsApp**: *"Tomás aprendió su pan amasado gracias a usted"*. |
 
@@ -75,7 +75,7 @@ Todo se usa **hablando**, incluso el registro.
 |---|---|
 | Frontend | HTML, CSS y JavaScript; Web Speech API (voz a texto y texto a voz) |
 | Backend | **Supabase Edge Function** (Deno) en `supabase/functions/api` |
-| Datos | **Supabase Postgres**: tablas `usuarios` y `guias`, con RLS (solo la función entra) |
+| Datos | **Supabase Postgres**: tablas `usuarios`, `guias` y `certificados`, con RLS (solo la función entra) |
 | IA | **Mistral Medium 3.5** (`mistral-medium-2604`), con respaldo automático en **OpenRouter** |
 | Voz | **Mistral Voxtral TTS** (`voxtral-mini-tts-2603`) con una voz chilena clonada (`/api/voz`); si falla, la del navegador |
 | Mensajería | **Zavu** (WhatsApp) y Telegram como respaldo; solo en hitos (1, 10, 50, 100…) |
@@ -130,6 +130,7 @@ En local, `.env` (copia de `.env.example`) solo se usa para `npm run probar-ia`.
 
 ```bash
 npm run probar-ia   # prueba los prompts de la IA contra Mistral real
+npm run probar-certificado   # genera un PDF de prueba y valida su estructura
 ```
 
 Para dejar la demo como al principio, en el SQL Editor de Supabase:
@@ -167,6 +168,7 @@ Caravean/
 │  ├─ index.html                # vistas para personas mayores y jóvenes
 │  ├─ estilos.css
 │  ├─ app.js                    # pantallas, voz, registro, guía paso a paso, enseñar
+│  ├─ certificados.js           # generación local del certificado PDF
 │  ├─ dibujos.js                # íconos, retratos e ilustraciones
 │  └─ mock.js                   # modo simulado (respaldo si el backend no responde)
 ├─ supabase/

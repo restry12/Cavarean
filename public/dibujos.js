@@ -25,6 +25,10 @@ const ICONOS = {
 "f": "none",
 "d": "<path d=\"M5 12h14M13 6l6 6-6 6\"></path>"
 },
+"download": {
+"f": "none",
+"d": "<path d=\"M12 3v12M7 10l5 5 5-5M4 20h16\"></path>"
+},
 "check": {
 "f": "none",
 "d": "<path d=\"M4.5 12.5l5 5L19.5 7\"></path>"
