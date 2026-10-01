@@ -63,6 +63,7 @@ avisarGracias({
 
 - Cambiar hitos: `HITOS` y `CADA_DESPUES` al inicio de `avisos.js`.
 - Cambiar textos: función `textoGracias` en `avisos.js`.
+- **Modo demo:** secreto `AVISAR_SIEMPRE=1` en Supabase → avisa en cada "¡Aprendí!", aunque la guía no esté en un hito (ej. el jurado abre una precargada en 58 → 59). Se lee solo, sin volver a desplegar. Borrarlo después de la demo.
 
 ## Probar en local (Node)
 
